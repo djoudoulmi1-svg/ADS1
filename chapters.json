@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1",
+    "number": "01",
+    "title": "Introduction to Programming",
+    "available": true,
+    "file": "CHAPTER1.html",
+    "sectionCount": "16 navigation topics",
+    "description": "Computers, problem solving, algorithms, programming languages, C, compilers, and development environments."
+  },
+  {
+    "id": "2",
+    "number": "02",
+    "title": "Sequential Algorithm",
+    "available": true,
+    "file": "CHAPTER2.html",
+    "sectionCount": "26 presentation sections",
+    "description": "Sequential algorithms, pseudocode, variables, worked examples, and interactive tracing challenges."
+  }
+]
