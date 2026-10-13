@@ -222,3 +222,7 @@ h1, h2, h3 { font-family: "Manrope", sans-serif; }
   .admin-chapter-row .admin-user-action { grid-column: 1; }
 }
 
+
+.chapter-upload-preview { display: block; width: 100%; height: 420px; margin: 8px 0 18px; border: 1px solid var(--line); border-radius: 4px; background: white; }
+.chapter-upload-preview[hidden] { display: none; }
+@media (max-width: 760px) { .chapter-upload-preview { height: 320px; } }
