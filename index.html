@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="supabase-config.js?v=student-accounts-setup" defer></script>
-  <script src="app.js?v=admin-chapter-removal-2" defer></script>
+  <script src="app.js?v=admin-chapter-removal-3" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -27,6 +27,7 @@
     </nav>
   </header>
   <main id="app" tabindex="-1"></main>
+  <script>window.addEventListener("error",event=>{const root=document.getElementById("app");if(root&&!root.children.length){root.innerHTML=`<section class="container account-shell"><h1>Page error</h1><p>${String(event.message||"Application failed to load")}</p><small>Line ${event.lineno||"?"}</small></section>`;}});</script>
   <footer class="site-footer"><a class="brand brand-small" href="#home"><span class="brand-mark">A<span>1</span></span><span>ADS1 <small>LEARNING HUB</small></span></a><span>Algorithmique et Structures de Données</span><span>Ouargla, Algeria</span></footer>
 </body>
 </html>
