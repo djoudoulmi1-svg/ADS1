@@ -101,6 +101,42 @@ h1, h2, h3 { font-family: "Manrope", sans-serif; }
 .about-band h1 { margin: 8px 0 15px; font-size: 38px; }
 .about-band p { max-width: 700px; color: var(--muted); line-height: 1.8; }
 .about-rule { height: 1px; margin: 28px 0; background: var(--line); }
+.account-shell { max-width: 920px; padding: 52px 0 76px; }
+.account-shell h1 { margin: 10px 0 12px; font-size: 38px; }
+.account-intro, .privacy-note { max-width: 720px; color: var(--muted); line-height: 1.7; }
+.auth-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 26px 0 18px; }
+.auth-form, .progress-panel, .leaderboard-panel { padding: 22px; border: 1px solid var(--line); background: white; border-radius: 5px; }
+.auth-form h2, .progress-panel h2, .leaderboard-panel h2 { margin: 6px 0 16px; font-size: 21px; }
+.auth-form label, .account-name-form label { display: block; margin: 12px 0 5px; color: var(--navy); font-size: 12px; font-weight: 700; }
+.auth-form input, .account-name-form input { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 4px; color: var(--navy); background: white; font: inherit; }
+.auth-form input:focus, .account-name-form input:focus { outline: 3px solid rgba(45,140,255,.15); border-color: var(--blue); }
+.auth-form .button { margin-top: 17px; }
+.privacy-note { margin-top: 22px; font-size: 12px; }
+.account-notice { min-height: 20px; margin: 16px 0 0; color: var(--muted); font-size: 13px; }
+.account-notice.error { color: #b33c3c; }
+.account-notice.success { color: var(--green); }
+.account-welcome, .progress-heading, .leaderboard-heading { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+.account-welcome { margin: 23px 0 16px; padding: 17px 20px; border: 1px solid var(--line); background: white; }
+.account-welcome span { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; }
+.account-welcome strong { font: 700 18px "Manrope", sans-serif; }
+.progress-panel, .leaderboard-panel { margin-top: 16px; }
+.progress-heading h2, .leaderboard-heading h2 { margin-bottom: 0; }
+.progress-count { color: var(--muted); font-size: 12px; }
+.course-progress { width: 100%; height: 12px; margin: 17px 0; accent-color: var(--blue); }
+.account-lesson-list { border-top: 1px solid var(--line); }
+.account-lesson { display: flex; justify-content: space-between; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.account-lesson strong { white-space: nowrap; font-size: 11px; }
+.lesson-done { color: var(--green); }
+.lesson-pending { color: var(--muted); }
+.leaderboard-panel > p { margin: 12px 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.leaderboard-empty { padding: 17px; color: var(--muted); background: var(--paper); font-size: 12px; }
+.leaderboard-list { margin: 12px 0 0; padding: 0; list-style: none; }
+.leaderboard-list li { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 11px 2px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.leader-rank { color: var(--muted); font-size: 11px; font-weight: 700; }
+.leader-name { overflow-wrap: anywhere; font-weight: 600; }
+.leaderboard-list li strong { color: var(--blue); }
+.account-name-form { margin-top: 22px; }
+.account-name-form > div { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
 .site-footer { min-height: 69px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px max(5vw, 24px); color: var(--muted); background: white; border-top: 1px solid var(--line); font-size: 11px; }
 .brand-small { transform: scale(.82); transform-origin: left center; }
 .site-footer > span:nth-child(2) { margin-left: auto; margin-right: 35px; }
@@ -141,6 +177,13 @@ h1, h2, h3 { font-family: "Manrope", sans-serif; }
   .lesson-toolbar .button { min-height: 39px; padding: 0 11px; font-size: 11px; }
   .lesson-frame { height: calc(100vh - 143px); min-height: 580px; }
   .about-band h1 { font-size: 32px; }
+  .account-shell { padding: 35px 0 54px; }
+  .account-shell h1 { font-size: 31px; }
+  .auth-grid { grid-template-columns: 1fr; }
+  .auth-form, .progress-panel, .leaderboard-panel { padding: 17px; }
+  .account-welcome, .progress-heading, .leaderboard-heading { align-items: flex-start; }
+  .progress-heading, .leaderboard-heading { flex-direction: column; }
+  .account-name-form > div { grid-template-columns: 1fr; }
   .site-footer { align-items: flex-start; flex-wrap: wrap; padding: 13px 18px; }
   .site-footer > span:nth-child(2) { margin: 0; }
 }

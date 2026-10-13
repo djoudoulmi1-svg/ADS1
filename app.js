@@ -1,6 +1,21 @@
 const app = document.querySelector("#app");
 const nav = document.querySelector(".main-nav");
 const menuToggle = document.querySelector(".menu-toggle");
+const supabaseConfig = window.ADS1_SUPABASE_CONFIG || {};
+const supabaseReady = Boolean(
+  window.supabase?.createClient &&
+  /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseConfig.url || "") &&
+  supabaseConfig.publishableKey &&
+  !supabaseConfig.publishableKey.startsWith("YOUR_")
+);
+const backendClient = supabaseReady
+  ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.publishableKey)
+  : null;
+let currentSession = null;
+let currentProfile = null;
+let chapterProgress = new Set();
+let sharedProfiles = [];
+let accountNotice = "";
 const bundledChapters = [
   {
     id: "1",
@@ -85,22 +100,97 @@ function home() {
 function chapterPage(id) {
   const chapter = chapters.find(item => item.id === id && item.available);
   if (!chapter) return home();
-  const completed = localStorage.getItem(`ads1.chapter${chapter.id}.completed`) === "true";
+  const completed = isChapterComplete(chapter.id);
   return `<section class="container page-shell fade-in">
     ${crumbs([{ label: "Home", href: "#home" }, { label: "Chapters", href: "#chapters" }, { label: `Chapter ${chapter.number}` }])}
     <div class="chapter-intro"><div><span class="eyebrow">Chapter ${chapter.number} · Available lesson</span><h1>${chapter.title}</h1>
       <p>${chapter.description}</p>
     </div><aside class="chapter-aside"><span>Course material</span><strong>${chapter.sectionCount}</strong></aside></div>
     <div class="lesson-row"><span class="lesson-index">01</span><div><h2>${chapter.title}</h2><p>Integrated lesson · source content and activities preserved</p></div><a class="button" href="#lesson/${chapter.id}">${completed ? "Continue lesson" : "Start lesson"}<span class="arrow" aria-hidden="true">→</span></a></div>
-    <div class="content-note">The learning outcomes and section list are presented in the lesson as supplied. Progress saved on this device only; it is not synchronized between browsers or devices.${chapter.id === "1" ? " The supplied page labels this lesson Chapter 2, while its cited PDF title identifies it as Chapter 1; this hub lists it as Chapter 1 to keep the separately supplied Sequential Algorithm lesson as Chapter 2." : ""}</div>
+    <div class="content-note">The learning outcomes and section list are presented in the lesson as supplied. ${currentSession ? "Your completion status is saved to your account." : "Without an account, completion is saved only in this browser."}${chapter.id === "1" ? " The supplied page labels this lesson Chapter 2, while its cited PDF title identifies it as Chapter 1; this hub lists it as Chapter 1 to keep the separately supplied Sequential Algorithm lesson as Chapter 2." : ""}</div>
   </section>`;
 }
 
 function lessonPage(id) {
   const chapter = chapters.find(item => item.id === id && item.available);
   if (!chapter) return home();
-  return `<div class="lesson-toolbar"><a class="button secondary" href="#chapter/${chapter.id}"><span aria-hidden="true">←</span> Back to chapter</a><div class="lesson-toolbar-title"><strong>${chapter.title}</strong><span>Chapter ${chapter.number} · University of Ouargla</span></div><button class="button secondary" id="mark-complete" data-chapter="${chapter.id}" type="button">${localStorage.getItem(`ads1.chapter${chapter.id}.completed`) === "true" ? "Completed" : "Mark complete"}</button></div>
+  return `<div class="lesson-toolbar"><a class="button secondary" href="#chapter/${chapter.id}"><span aria-hidden="true">←</span> Back to chapter</a><div class="lesson-toolbar-title"><strong>${chapter.title}</strong><span>Chapter ${chapter.number} · University of Ouargla</span></div><button class="button secondary" id="mark-complete" data-chapter="${chapter.id}" type="button" ${isChapterComplete(chapter.id) ? "disabled" : ""}>${isChapterComplete(chapter.id) ? "Completed" : "Mark complete"}</button></div>
   <iframe class="lesson-frame" src="${chapter.file}" title="Chapter ${chapter.number}: ${chapter.title} lesson" allow="fullscreen"></iframe>`;
+}
+
+function isChapterComplete(chapterId) {
+  return currentSession
+    ? chapterProgress.has(String(chapterId))
+    : localStorage.getItem(`ads1.chapter${chapterId}.completed`) === "true";
+}
+
+function completedAvailableChapterCount() {
+  return chapters.filter(chapter => chapter.available && chapterProgress.has(String(chapter.id))).length;
+}
+
+function accountPage() {
+  if (!backendClient) {
+    return `<section class="container account-shell fade-in">
+      <span class="eyebrow">Student account</span><h1>Accounts are not connected yet</h1>
+      <p class="account-intro">The site needs its secure authentication service configured before students can register. Account passwords are never stored in this website.</p>
+      <div class="content-note">Setup requires a Supabase project and a private Google Sheet integration. Follow the owner setup guide, then add only the Supabase project URL and public publishable key to <code>supabase-config.js</code>.</div>
+      <a class="button secondary" href="AUTH-SETUP.md">Open account setup guide <span class="arrow" aria-hidden="true">→</span></a>
+    </section>`;
+  }
+
+  if (currentSession && currentProfile) {
+    const total = chapters.filter(chapter => chapter.available).length;
+    const percent = Number(currentProfile.progress_percent) || 0;
+    const lessonRows = chapters.filter(chapter => chapter.available).map(chapter => {
+      const completed = chapterProgress.has(String(chapter.id));
+      return `<div class="account-lesson"><span>${escapeHTML(chapter.title)}</span><strong class="${completed ? "lesson-done" : "lesson-pending"}">${completed ? "Completed" : "Not completed"}</strong></div>`;
+    }).join("");
+    const leaderboardRows = sharedProfiles.map((profile, index) => `<li><span class="leader-rank">${String(index + 1).padStart(2, "0")}</span><span class="leader-name">${escapeHTML(profile.display_name)}</span><strong>${Math.round(Number(profile.progress_percent) || 0)}%</strong></li>`).join("");
+    return `<section class="container account-shell fade-in">
+      <span class="eyebrow">Student account</span><h1>Your learning progress</h1>
+      <div class="account-welcome"><div><span>Signed in as</span><strong>${escapeHTML(currentProfile.display_name)}</strong></div><button class="button secondary" id="sign-out" type="button">Sign out</button></div>
+      <section class="progress-panel" aria-labelledby="progress-heading">
+        <div class="progress-heading"><div><span class="eyebrow">Course progress</span><h2 id="progress-heading">${percent}% complete</h2></div><span class="progress-count">${completedAvailableChapterCount()} of ${total} chapters</span></div>
+        <progress class="course-progress" value="${percent}" max="100" aria-label="Course completion ${percent} percent"></progress>
+        <div class="account-lesson-list">${lessonRows}</div>
+      </section>
+      <section class="leaderboard-panel" aria-labelledby="leaderboard-heading">
+        <div class="leaderboard-heading"><div><span class="eyebrow">Shared with signed-in students</span><h2 id="leaderboard-heading">Course progress board</h2></div><button class="button secondary" id="load-leaderboard" type="button">${sharedProfiles.length ? "Refresh" : "Show board"}</button></div>
+        <p>Only display names and completion percentages appear here. Email addresses and detailed lesson records are private.</p>
+        ${sharedProfiles.length ? `<ol class="leaderboard-list">${leaderboardRows}</ol>` : `<div class="leaderboard-empty">Select “Show board” to view student progress.</div>`}
+      </section>
+      <form id="display-name-form" class="account-name-form"><label for="display-name">Display name</label><div><input id="display-name" name="displayName" maxlength="40" minlength="2" value="${escapeHTML(currentProfile.display_name)}" required><button class="button secondary" type="submit">Update name</button></div></form>
+      <p class="account-notice" id="account-notice" aria-live="polite">${escapeHTML(accountNotice)}</p>
+    </section>`;
+  }
+
+  if (currentSession) {
+    return `<section class="container account-shell fade-in">
+      <span class="eyebrow">Student account</span><h1>Finishing account setup</h1>
+      <p class="account-intro">${escapeHTML(accountNotice || "Your account is signed in. Profile data is loading or needs the owner to finish the database setup.")}</p>
+      <button class="button secondary" id="sign-out" type="button">Sign out</button>
+    </section>`;
+  }
+
+  return `<section class="container account-shell fade-in">
+    <span class="eyebrow">Student account</span><h1>Join the ADS1 learning hub</h1>
+    <p class="account-intro">Use one account per email address. Your detailed progress stays private; signed-in students can see your chosen display name and overall completion percentage.</p>
+    <div class="auth-grid">
+      <form id="signup-form" class="auth-form"><h2>Create account</h2>
+        <label for="signup-name">Display name</label><input id="signup-name" name="displayName" autocomplete="nickname" minlength="2" maxlength="40" required>
+        <label for="signup-email">Email</label><input id="signup-email" name="email" type="email" autocomplete="email" required>
+        <label for="signup-password">Password</label><input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+        <button class="button" type="submit">Sign up</button>
+      </form>
+      <form id="login-form" class="auth-form"><h2>Sign in</h2>
+        <label for="login-email">Email</label><input id="login-email" name="email" type="email" autocomplete="email" required>
+        <label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        <button class="button secondary" type="submit">Sign in</button>
+      </form>
+    </div>
+    <p class="account-notice" id="account-notice" aria-live="polite">${escapeHTML(accountNotice)}</p>
+    <p class="privacy-note">Passwords are managed by Supabase, not stored in the ADS1 website. Emails are used for account access and the owner’s private roster sheet. Only display name and overall progress percentage are shown to other signed-in students.</p>
+  </section>`;
 }
 
 function aboutPage() {
@@ -113,12 +203,13 @@ function aboutPage() {
 
 function render() {
   const { page, query } = route();
-  const view = page === "chapters" ? home() : page === "chapter" ? chapterPage(query) : page === "lesson" ? lessonPage(query) : page === "about" ? aboutPage() : home();
+  const view = page === "chapters" ? home() : page === "chapter" ? chapterPage(query) : page === "lesson" ? lessonPage(query) : page === "account" ? accountPage() : page === "about" ? aboutPage() : home();
   app.innerHTML = view;
   document.querySelectorAll("[data-nav]").forEach(link => link.classList.toggle("active", link.dataset.nav === page || (page === "chapter" && link.dataset.nav === "chapters")));
   nav.classList.remove("open");
   menuToggle.setAttribute("aria-expanded", "false");
   if (page === "lesson") document.querySelector("#mark-complete").addEventListener("click", markComplete);
+  if (page === "account" && backendClient) bindAccountForms();
   if (page === "home" || page === "chapters") document.querySelector("#chapter-search").addEventListener("input", filterChapters);
   if (page === "lesson") app.focus({ preventScroll: true });
 }
@@ -138,10 +229,236 @@ function filterChapters(event) {
   if (visible && empty) empty.remove();
 }
 
-function markComplete(event) {
-  localStorage.setItem(`ads1.chapter${event.currentTarget.dataset.chapter}.completed`, "true");
-  event.currentTarget.textContent = "Completed";
-  event.currentTarget.disabled = true;
+function setAccountNotice(message, kind = "") {
+  accountNotice = message;
+  const notice = document.querySelector("#account-notice");
+  if (notice) {
+    notice.textContent = message;
+    notice.className = `account-notice ${kind}`;
+  }
+}
+
+function bindAccountForms() {
+  document.querySelector("#signup-form")?.addEventListener("submit", signUp);
+  document.querySelector("#login-form")?.addEventListener("submit", signIn);
+  document.querySelector("#display-name-form")?.addEventListener("submit", updateDisplayName);
+  document.querySelector("#sign-out")?.addEventListener("click", signOut);
+  document.querySelector("#load-leaderboard")?.addEventListener("click", loadLeaderboard);
+}
+
+async function signUp(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const displayName = String(form.get("displayName")).trim();
+  const email = String(form.get("email")).trim().toLowerCase();
+  const password = String(form.get("password"));
+  setAccountNotice("Creating your account…");
+  const { data, error } = await backendClient.auth.signUp({
+    email,
+    password,
+    options: { data: { display_name: displayName } }
+  });
+  if (error) {
+    setAccountNotice(error.message, "error");
+    return;
+  }
+  if (!data.session) {
+    setAccountNotice("Account created. Check your email to confirm it, then sign in.", "success");
+    return;
+  }
+  currentSession = data.session;
+  await loadAccountData(data.session.user);
+  await syncRoster();
+  render();
+}
+
+async function signIn(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  setAccountNotice("Signing in…");
+  const { data, error } = await backendClient.auth.signInWithPassword({
+    email: String(form.get("email")).trim().toLowerCase(),
+    password: String(form.get("password"))
+  });
+  if (error) {
+    setAccountNotice(error.message, "error");
+    return;
+  }
+  currentSession = data.session;
+  await loadAccountData(data.user);
+  await syncRoster();
+  render();
+}
+
+async function signOut() {
+  const { error } = await backendClient.auth.signOut();
+  if (error) setAccountNotice(error.message, "error");
+  else {
+    currentSession = null;
+    currentProfile = null;
+    chapterProgress.clear();
+    sharedProfiles = [];
+    accountNotice = "";
+    render();
+  }
+}
+
+async function loadAccountData(user) {
+  const { data: existingProfile, error: profileError } = await backendClient
+    .from("profiles")
+    .select("display_name, progress_percent")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (profileError) {
+    accountNotice = "Profile setup failed. The site owner may need to run the account database setup.";
+    return;
+  }
+
+  const displayName = existingProfile?.display_name || user.user_metadata?.display_name || user.email?.split("@")[0] || "ADS1 student";
+  const { data: profile, error: saveProfileError } = await backendClient
+    .from("profiles")
+    .upsert({
+      user_id: user.id,
+      display_name: displayName,
+      progress_percent: existingProfile?.progress_percent || 0
+    }, { onConflict: "user_id" })
+    .select("display_name, progress_percent")
+    .single();
+  if (saveProfileError) {
+    accountNotice = "Profile setup failed. The site owner may need to run the account database setup.";
+    return;
+  }
+
+  const { data: rows, error: progressError } = await backendClient
+    .from("lesson_progress")
+    .select("chapter_id, completed")
+    .eq("user_id", user.id);
+  if (progressError) {
+    accountNotice = "Progress setup failed. The site owner may need to run the account database setup.";
+    return;
+  }
+
+  chapterProgress = new Set(rows.filter(row => row.completed).map(row => String(row.chapter_id)));
+  const total = chapters.filter(chapter => chapter.available).length;
+  const percent = total ? Math.round(completedAvailableChapterCount() / total * 100) : 0;
+  currentProfile = { ...profile, progress_percent: percent };
+  if (Number(profile.progress_percent) !== percent) {
+    const { error: percentError } = await backendClient
+      .from("profiles")
+      .update({ progress_percent: percent })
+      .eq("user_id", user.id);
+    if (percentError) accountNotice = "Progress loaded, but its public percentage could not be updated.";
+  }
+}
+
+async function syncRoster() {
+  if (!backendClient || !currentSession) return;
+  const { error } = await backendClient.functions.invoke("sync-roster", { body: {} });
+  if (error) {
+    accountNotice = "Your account works, but the owner’s private Google Sheet sync is not configured yet.";
+  } else {
+    accountNotice = "Your account and private roster entry are up to date.";
+  }
+}
+
+async function updateDisplayName(event) {
+  event.preventDefault();
+  const displayName = String(new FormData(event.currentTarget).get("displayName")).trim();
+  const { data, error } = await backendClient
+    .from("profiles")
+    .update({ display_name: displayName })
+    .eq("user_id", currentSession.user.id)
+    .select("display_name, progress_percent")
+    .single();
+  if (error) {
+    setAccountNotice(error.message, "error");
+    return;
+  }
+  currentProfile = data;
+  await syncRoster();
+  render();
+}
+
+async function loadLeaderboard() {
+  const button = document.querySelector("#load-leaderboard");
+  if (button) button.disabled = true;
+  const { data, error } = await backendClient.rpc("get_progress_board");
+  if (error) {
+    setAccountNotice("Could not load the shared progress board.", "error");
+    if (button) button.disabled = false;
+    return;
+  }
+  sharedProfiles = data || [];
+  render();
+}
+
+async function initializeAccounts() {
+  if (!backendClient) return;
+  const { data, error } = await backendClient.auth.getSession();
+  if (!error && data.session) {
+    currentSession = data.session;
+    await loadAccountData(data.session.user);
+  }
+  backendClient.auth.onAuthStateChange((_event, session) => {
+    window.setTimeout(async () => {
+      currentSession = session;
+      if (session?.user) {
+        await loadAccountData(session.user);
+        await syncRoster();
+      } else {
+        currentProfile = null;
+        chapterProgress.clear();
+        sharedProfiles = [];
+      }
+      render();
+    }, 0);
+  });
+}
+
+async function markComplete(event) {
+  const button = event.currentTarget;
+  const chapterId = button.dataset.chapter;
+  button.disabled = true;
+  if (currentSession) {
+    const { error } = await backendClient.from("lesson_progress").upsert({
+      user_id: currentSession.user.id,
+      chapter_id: chapterId,
+      completed: true,
+      updated_at: new Date().toISOString()
+    }, { onConflict: "user_id,chapter_id" });
+    if (error) {
+      button.disabled = false;
+      setAccountNotice("Could not save progress to your account. Please try again.", "error");
+      return;
+    }
+    chapterProgress.add(chapterId);
+    const total = chapters.filter(chapter => chapter.available).length;
+    const percent = total ? Math.round(completedAvailableChapterCount() / total * 100) : 0;
+    const { error: percentError } = await backendClient.from("profiles")
+      .update({ progress_percent: percent })
+      .eq("user_id", currentSession.user.id);
+    if (percentError) {
+      button.disabled = false;
+      setAccountNotice("Progress was saved, but the shared percentage could not be updated.", "error");
+      return;
+    }
+    if (currentProfile) currentProfile.progress_percent = percent;
+  } else {
+    localStorage.setItem(`ads1.chapter${chapterId}.completed`, "true");
+  }
+  button.textContent = "Completed";
+}
+
+async function loadChapterCatalog() {
+  try {
+    const response = await fetch("./chapters.json", { cache: "no-store" });
+    if (!response.ok) throw new Error(`Catalog request failed: ${response.status}`);
+    const catalog = await response.json();
+    if (Array.isArray(catalog) && catalog.length) chapters = catalog;
+  } catch {
+    chapters = bundledChapters;
+  }
+  render();
 }
 
 menuToggle.addEventListener("click", () => {
@@ -160,7 +477,12 @@ async function loadChapterCatalog() {
   render();
 }
 
+async function startApplication() {
+  await loadChapterCatalog();
+  await initializeAccounts();
+  render();
+}
+
 window.addEventListener("hashchange", render);
-window.addEventListener("DOMContentLoaded", render);
 render();
-loadChapterCatalog();
+startApplication();
