@@ -18,6 +18,7 @@ let sharedProfiles = [];
 let accountNotice = "";
 let currentIsAdmin = false;
 let currentIsOwner = false;
+let adminChapters = [];
 let adminUsers = [];
 let adminNotice = "";
 const bundledChapters = [
@@ -199,10 +200,10 @@ function accountPage() {
 }
 
 function adminPanel() {
-  const chapterRows = chapters.map(chapter => `
+  const chapterRows = adminChapters.map(chapter => `
     <div class="admin-chapter-row">
-      <div class="admin-user-identity"><strong>Chapter ${escapeHTML(chapter.number)} · ${escapeHTML(chapter.title)}</strong><span>${escapeHTML(chapter.description || "HTML lesson")}</span></div>
-      <button class="button secondary admin-user-action admin-delete-chapter" type="button" data-chapter-id="${escapeHTML(chapter.id)}">Remove chapter</button>
+      <div class="admin-user-identity"><strong>Chapter ${escapeHTML(chapter.number)} · ${escapeHTML(chapter.title)}</strong><span>${escapeHTML(chapter.available ? "Visible to students" : "Hidden from students")}</span></div>
+      <button class="button secondary admin-user-action admin-chapter-visibility" type="button" data-chapter-id="${escapeHTML(chapter.id)}" data-visible="${chapter.available}">${chapter.available ? "Hide chapter" : "Show chapter"}</button>
     </div>`).join("");
   const rows = adminUsers.map(user => {
     const protectedUser = user.owner || user.administrator || user.userId === currentSession?.user?.id;
@@ -232,8 +233,8 @@ function adminPanel() {
       <p class="admin-help">Choose one HTML lesson file up to 5 MB. Keep its images and styles inside the file.</p>
       <button class="button" type="submit">Upload chapter</button>
     </form>
-    <div class="admin-chapters-heading"><h3>Available chapters</h3></div>
-    <div class="admin-chapters" id="admin-chapters">${chapterRows || `<p class="admin-help">No available chapters.</p>`}</div>
+    <div class="admin-chapters-heading"><h3>Chapter visibility</h3></div>
+    <div class="admin-chapters" id="admin-chapters">${chapterRows || `<p class="admin-help">No chapters found.</p>`}</div>
     <p class="account-notice" id="admin-notice" aria-live="polite">${escapeHTML(adminNotice)}</p>
     <div class="admin-users-heading"><h3>Student accounts</h3><button class="button secondary" id="refresh-admin-users" type="button">Refresh list</button></div>
     <div class="admin-users" id="admin-users">${rows || `<p class="admin-help">No student accounts found.</p>`}</div>
@@ -259,26 +260,22 @@ function bindAdminForms() {
 async function handleAdminChapterAction(event) {
   const button = event.target.closest("button[data-chapter-id]");
   if (!button || !currentIsAdmin) return;
-  const chapter = chapters.find(item => item.id === button.dataset.chapterId);
+  const chapter = adminChapters.find(item => item.id === button.dataset.chapterId);
   if (!chapter) return;
-  const bundled = !chapter.remote;
-  const detail = bundled
-    ? " It will disappear for all visitors, but its original file will remain in the website repository."
-    : " Its uploaded lesson file will also be deleted.";
-  if (!window.confirm(`Remove Chapter ${chapter.number}: ${chapter.title} from the website?${detail}`)) return;
+  const visible = button.dataset.visible !== "true";
 
   button.disabled = true;
-  setAdminNotice("Removing chapter…");
+  setAdminNotice(visible ? "Showing chapter…" : "Hiding chapter…");
   const { data, error } = await backendClient.functions.invoke("admin-tools", {
-    body: { action: "delete-chapter", chapterId: chapter.id }
+    body: { action: "set-chapter-visibility", chapterId: chapter.id, visible }
   });
   if (error || !data?.ok) {
-    setAdminNotice(data?.error || error?.message || "Could not remove this chapter.", "error");
+    setAdminNotice(data?.error || error?.message || "Could not update chapter visibility.", "error");
     button.disabled = false;
     return;
   }
   await loadChapterCatalog();
-  adminNotice = `Chapter ${chapter.number} was removed.`;
+  adminNotice = `Chapter ${chapter.number} is now ${visible ? "visible" : "hidden"} to students.`;
   render();
 }
 
@@ -362,7 +359,7 @@ async function uploadChapter(event) {
   }
 
   const chapterNumber = String(number).padStart(2, "0");
-  if (chapters.some(chapter => String(chapter.number).padStart(2, "0") === chapterNumber)) {
+  if (adminChapters.some(chapter => String(chapter.number).padStart(2, "0") === chapterNumber)) {
     setAdminNotice("That chapter number is already in use.", "error");
     return;
   }
@@ -496,6 +493,7 @@ async function signUp(event) {
   currentSession = data.session;
   await loadAccountData(data.session.user);
   await loadAdminState();
+  await loadChapterCatalog();
   await syncRoster();
   render();
 }
@@ -515,6 +513,7 @@ async function signIn(event) {
   currentSession = data.session;
   await loadAccountData(data.user);
   await loadAdminState();
+  await loadChapterCatalog();
   await syncRoster();
   render();
 }
@@ -632,6 +631,7 @@ async function initializeAccounts() {
     currentSession = data.session;
     await loadAccountData(data.session.user);
     await loadAdminState();
+    await loadChapterCatalog();
   }
   backendClient.auth.onAuthStateChange((_event, session) => {
     window.setTimeout(async () => {
@@ -639,6 +639,7 @@ async function initializeAccounts() {
       if (session?.user) {
         await loadAccountData(session.user);
         await loadAdminState();
+        await loadChapterCatalog();
         await syncRoster();
       } else {
         currentProfile = null;
@@ -647,6 +648,7 @@ async function initializeAccounts() {
         adminUsers = [];
         chapterProgress.clear();
         sharedProfiles = [];
+        await loadChapterCatalog();
       }
       render();
     }, 0);
@@ -698,16 +700,15 @@ async function loadChapterCatalog() {
     catalog = bundledChapters;
   }
 
+  let removedIds = new Set();
   if (backendClient) {
     const { data: removedRows, error: removedError } = await backendClient.from("removed_chapters")
       .select("chapter_id");
-    const removedIds = !removedError && Array.isArray(removedRows)
+    removedIds = !removedError && Array.isArray(removedRows)
       ? new Set(removedRows.map(row => String(row.chapter_id)))
       : new Set();
-    catalog = catalog.filter(chapter => !removedIds.has(String(chapter.id)));
     const { data, error } = await backendClient.from("chapter_catalog")
-      .select("id, number, title, description, file_path, section_count")
-      .eq("available", true)
+      .select("id, number, title, description, file_path, section_count, available")
       .order("number");
     if (!error && Array.isArray(data)) {
       const remoteChapters = data.map(chapter => ({
@@ -718,11 +719,18 @@ async function loadChapterCatalog() {
         sectionCount: chapter.section_count,
         file: backendClient.storage.from("course-chapters").getPublicUrl(chapter.file_path).data.publicUrl,
         remote: true,
-        available: true
+        available: chapter.available
       }));
       const remoteIds = new Set(remoteChapters.map(chapter => chapter.id));
       catalog = [...catalog.filter(chapter => !remoteIds.has(chapter.id)), ...remoteChapters];
+      adminChapters = catalog.map(chapter => ({ ...chapter, available: chapter.remote ? chapter.available : !removedIds.has(String(chapter.id)) }));
+      catalog = adminChapters.filter(chapter => chapter.available);
+    } else {
+      adminChapters = catalog.map(chapter => ({ ...chapter, available: !removedIds.has(String(chapter.id)) }));
+      catalog = adminChapters.filter(chapter => chapter.available);
     }
+  } else {
+    adminChapters = catalog.map(chapter => ({ ...chapter }));
   }
 
   chapters = catalog;

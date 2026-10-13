@@ -78,53 +78,39 @@ Deno.serve(async request => {
     return jsonResponse({ error: "Invalid request body" }, 400);
   }
 
-  if (body.action === "delete-chapter") {
+  if (body.action === "set-chapter-visibility") {
     const chapterId = String(body.chapterId || "");
+    const visible = body.visible;
+    if (typeof visible !== "boolean") {
+      return jsonResponse({ error: "A chapter visibility status is required" }, 400);
+    }
     if (chapterId === "1" || chapterId === "2") {
-      const { error } = await adminClient.from("removed_chapters").upsert(
-        { chapter_id: chapterId, removed_by: caller.id },
-        { onConflict: "chapter_id" }
-      );
+      const { error } = visible
+        ? await adminClient.from("removed_chapters").delete().eq("chapter_id", chapterId)
+        : await adminClient.from("removed_chapters").upsert(
+            { chapter_id: chapterId, removed_by: caller.id },
+            { onConflict: "chapter_id" }
+          );
       if (error) {
-        console.error("Could not remove bundled chapter:", error.message);
-        return jsonResponse({ error: "Could not remove this chapter" }, 500);
+        console.error("Could not update bundled chapter visibility:", error.message);
+        return jsonResponse({ error: "Could not update this chapter's visibility" }, 500);
       }
-      return jsonResponse({ ok: true, chapterId });
+      return jsonResponse({ ok: true, chapterId, visible });
     }
     if (!/^extra-(?:[3-9]|[1-9][0-9])(?:-[a-f0-9]{20})?$/i.test(chapterId)) {
-      return jsonResponse({ error: "This chapter cannot be removed here" }, 400);
+      return jsonResponse({ error: "This chapter cannot be changed here" }, 400);
     }
-    const { data: chapter, error: chapterError } = await adminClient
+    const { data: changedChapters, error: chapterError } = await adminClient
       .from("chapter_catalog")
-      .select("id, file_path")
-      .eq("id", chapterId)
-      .maybeSingle();
-    if (chapterError) return jsonResponse({ error: "Could not find this uploaded chapter" }, 500);
-    if (!chapter || !chapter.file_path.startsWith(`${chapterId}/`) || !chapter.file_path.endsWith(".html")) {
-      return jsonResponse({ error: "Uploaded chapter not found" }, 404);
-    }
-
-    const storage = adminClient.storage.from("course-chapters");
-    const { data: file, error: downloadError } = await storage.download(chapter.file_path);
-    if (downloadError || !file) return jsonResponse({ error: "Could not access the chapter file" }, 500);
-    const { error: storageError } = await storage.remove([chapter.file_path]);
-    if (storageError) return jsonResponse({ error: "Could not remove the chapter file" }, 500);
-
-    const { data: removedRows, error: catalogError } = await adminClient
-      .from("chapter_catalog")
-      .delete()
+      .update({ available: visible })
       .eq("id", chapterId)
       .select("id");
-    if (catalogError || !removedRows?.length) {
-      const { error: restoreError } = await storage.upload(chapter.file_path, file, {
-        contentType: "text/html",
-        cacheControl: "3600",
-        upsert: true
-      });
-      if (restoreError) console.error("Could not restore chapter file after catalog deletion failed:", restoreError.message);
-      return jsonResponse({ error: restoreError ? "Chapter removal failed and its file could not be restored; contact the site owner." : "Could not remove this chapter from the catalog." }, 500);
+    if (chapterError) {
+      console.error("Could not update uploaded chapter visibility:", chapterError.message);
+      return jsonResponse({ error: "Could not update this chapter's visibility" }, 500);
     }
-    return jsonResponse({ ok: true, chapterId });
+    if (!changedChapters?.length) return jsonResponse({ error: "Uploaded chapter not found" }, 404);
+    return jsonResponse({ ok: true, chapterId, visible });
   }
 
   if (body.action === "list-users") {
