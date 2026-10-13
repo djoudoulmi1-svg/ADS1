@@ -21,7 +21,6 @@ let currentIsOwner = false;
 let adminChapters = [];
 let adminUsers = [];
 let adminNotice = "";
-let assistantHistory = [];
 const bundledChapters = [
   {
     id: "1",
@@ -627,7 +626,6 @@ async function loadLeaderboard() {
 
 async function initializeAccounts() {
   if (!backendClient) {
-    updateAssistantStatus();
     return;
   }
   const { data, error } = await backendClient.auth.getSession();
@@ -637,7 +635,6 @@ async function initializeAccounts() {
     await loadAdminState();
     await loadChapterCatalog();
   }
-  updateAssistantStatus();
   backendClient.auth.onAuthStateChange((_event, session) => {
     window.setTimeout(async () => {
       currentSession = session;
@@ -745,86 +742,6 @@ async function loadChapterCatalog() {
 menuToggle.addEventListener("click", () => {
   const open = nav.classList.toggle("open");
   menuToggle.setAttribute("aria-expanded", String(open));
-});
-
-const assistantLauncher = document.querySelector("#assistant-launcher");
-const assistantPanel = document.querySelector("#assistant-panel");
-const assistantClose = document.querySelector("#assistant-close");
-const assistantForm = document.querySelector("#assistant-form");
-const assistantInput = document.querySelector("#assistant-input");
-const assistantMessages = document.querySelector("#assistant-messages");
-const assistantStatus = document.querySelector("#assistant-status");
-const assistantSend = document.querySelector("#assistant-send");
-
-function updateAssistantStatus(message = "") {
-  if (!assistantStatus) return;
-  assistantStatus.textContent = message || (currentSession
-    ? "Signed in. Ask a question about ADS1."
-    : "Sign in to use the assistant.");
-}
-
-function addAssistantMessage(text, kind) {
-  const item = document.createElement("p");
-  item.className = `assistant-message assistant-message-${kind}`;
-  item.textContent = text;
-  assistantMessages.append(item);
-  assistantMessages.scrollTop = assistantMessages.scrollHeight;
-  return item;
-}
-
-assistantLauncher.addEventListener("click", () => {
-  const open = assistantPanel.hidden;
-  assistantPanel.hidden = !open;
-  assistantLauncher.setAttribute("aria-expanded", String(open));
-  if (open) assistantInput.focus();
-});
-assistantClose.addEventListener("click", () => {
-  assistantPanel.hidden = true;
-  assistantLauncher.setAttribute("aria-expanded", "false");
-  assistantLauncher.focus();
-});
-assistantForm.addEventListener("submit", async event => {
-  event.preventDefault();
-  const question = assistantInput.value.trim();
-  if (!question) return;
-  if (!backendClient || !currentSession) {
-    updateAssistantStatus("Please sign in from the Account page before asking a question.");
-    return;
-  }
-
-  addAssistantMessage(question, "user");
-  assistantInput.value = "";
-  assistantSend.disabled = true;
-  updateAssistantStatus("Thinking…");
-  const waitingMessage = addAssistantMessage("Thinking…", "bot");
-  try {
-    const { data, error } = await backendClient.functions.invoke("course-assistant", {
-      body: { question, history: assistantHistory.slice(-8) }
-    });
-    waitingMessage.remove();
-    if (error) throw error;
-    if (!data?.answer) throw new Error(data?.error || "The assistant did not return an answer.");
-    addAssistantMessage(data.answer, "bot");
-    assistantHistory.push({ role: "user", content: question }, { role: "assistant", content: data.answer });
-    assistantHistory = assistantHistory.slice(-8);
-    updateAssistantStatus();
-  } catch (error) {
-    waitingMessage.remove();
-    let message = error?.message || "Please try again in a moment.";
-    if (error?.context && typeof error.context.clone === "function") {
-      try {
-        const responseBody = await error.context.clone().json();
-        message = responseBody?.error || message;
-      } catch {
-        // Keep the fallback message when the function response is not JSON.
-      }
-    }
-    addAssistantMessage(`Sorry, I could not answer just now. ${message}`, "bot");
-    updateAssistantStatus("Check your sign-in or ask again later.");
-  } finally {
-    assistantSend.disabled = false;
-    assistantInput.focus();
-  }
 });
 
 async function startApplication() {
