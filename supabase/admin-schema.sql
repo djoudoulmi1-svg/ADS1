@@ -87,38 +87,45 @@ grant execute on function public.is_site_admin() to authenticated;
 grant execute on function public.is_site_owner() to authenticated;
 
 drop policy if exists "Students can read their own profile" on public.profiles;
+drop policy if exists "Active students can read their own profile" on public.profiles;
 create policy "Active students can read their own profile"
   on public.profiles for select to authenticated
   using (auth.uid() = user_id and public.is_active_user());
 
 drop policy if exists "Students can create their own profile" on public.profiles;
+drop policy if exists "Active students can create their own profile" on public.profiles;
 create policy "Active students can create their own profile"
   on public.profiles for insert to authenticated
   with check (auth.uid() = user_id and public.is_active_user());
 
 drop policy if exists "Students can update their own profile" on public.profiles;
+drop policy if exists "Active students can update their own profile" on public.profiles;
 create policy "Active students can update their own profile"
   on public.profiles for update to authenticated
   using (auth.uid() = user_id and public.is_active_user())
   with check (auth.uid() = user_id and public.is_active_user());
 
 drop policy if exists "Students can read their own lesson progress" on public.lesson_progress;
+drop policy if exists "Active students can read their own lesson progress" on public.lesson_progress;
 create policy "Active students can read their own lesson progress"
   on public.lesson_progress for select to authenticated
   using (auth.uid() = user_id and public.is_active_user());
 
 drop policy if exists "Students can create their own lesson progress" on public.lesson_progress;
+drop policy if exists "Active students can create their own lesson progress" on public.lesson_progress;
 create policy "Active students can create their own lesson progress"
   on public.lesson_progress for insert to authenticated
   with check (auth.uid() = user_id and public.is_active_user());
 
 drop policy if exists "Students can update their own lesson progress" on public.lesson_progress;
+drop policy if exists "Active students can update their own lesson progress" on public.lesson_progress;
 create policy "Active students can update their own lesson progress"
   on public.lesson_progress for update to authenticated
   using (auth.uid() = user_id and public.is_active_user())
   with check (auth.uid() = user_id and public.is_active_user());
 
 drop policy if exists "Students can delete their own lesson progress" on public.lesson_progress;
+drop policy if exists "Active students can delete their own lesson progress" on public.lesson_progress;
 create policy "Active students can delete their own lesson progress"
   on public.lesson_progress for delete to authenticated
   using (auth.uid() = user_id and public.is_active_user());
