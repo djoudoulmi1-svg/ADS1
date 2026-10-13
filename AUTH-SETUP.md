@@ -25,10 +25,11 @@ The publishable/anon key is intended for browser use and is protected by the SQL
 2. Open **Extensions → Apps Script**. Replace the editor contents with `google-sheet/Code.gs` and save the project.
 3. In Apps Script **Project Settings → Script Properties**, add:
    - `SPREADSHEET_ID`: the ID from the Sheet URL between `/d/` and `/edit`.
-   - `SYNC_SECRET`: a long, random value generated privately. Do not commit or send it to anyone.
+   - `SUPABASE_URL`: your Supabase Project URL.
+   - `SUPABASE_ANON_KEY`: your public publishable/anon key.
 4. Choose **Deploy → New deployment → Web app**. Set **Execute as** to your account and **Who has access** to **Anyone**, then deploy and authorize it. Copy the resulting `/exec` URL. The endpoint requires the separate secret and is called only by the authenticated Supabase Edge Function.
 
-The script creates a `Users` tab automatically. It stores user ID, email, display name, first-seen time, and last-updated time. Re-syncing an account updates its existing row instead of making a duplicate.
+The script creates a `Users` tab automatically. It validates the Supabase access token, reads the matching profile under that user's row-level security, then stores user ID, email, display name, first-seen time, and last-updated time. Re-syncing an account updates its existing row instead of making a duplicate. The Sheet ID and public key are not passwords; keep the Sheet private to your Google account.
 
 ## 3. Deploy the secure Sheet bridge
 
@@ -36,10 +37,9 @@ The script creates a `Users` tab automatically. It stores user ID, email, displa
 2. Deploy the contents of `supabase/functions/sync-roster/index.ts`. Make sure JWT verification is enabled; `supabase/config.toml` also records this setting for CLI-based deployments.
 3. In **Edge Function Secrets**, set:
    - `SHEET_SYNC_URL`: the Apps Script `/exec` URL.
-   - `SHEET_SYNC_SECRET`: the exact same private value entered in Apps Script Script Properties.
    - `SUPABASE_URL` and `SUPABASE_ANON_KEY` if they are not already available to the function runtime.
 
-Do not place the Sheet ID or sync secret in website JavaScript. Only the Edge Function receives the sync secret.
+Only `SHEET_SYNC_URL` is specific to the roster bridge. The Edge Function passes the signed-in student's access token; Apps Script validates it with Supabase before writing a row. Never put a service-role key in the website or Apps Script.
 
 ## 4. Publish and verify
 

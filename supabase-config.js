@@ -1,4 +1,4 @@
 window.ADS1_SUPABASE_CONFIG = {
-  url: "https://YOUR_PROJECT_REF.supabase.co",
-  publishableKey: "YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY"
+  url: "https://ruiseebkbuuwktuxabxv.supabase.co",
+  publishableKey: "sb_publishable_MDbJ0_fvanCOrCYf715-JA_ANcSU060"
 };
