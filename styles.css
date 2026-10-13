@@ -25,6 +25,7 @@ button { font: inherit; }
 .brand small { display: block; margin-top: 4px; color: var(--muted); font: 700 9px "DM Sans", sans-serif; letter-spacing: 1.3px; }
 .brand-mark { width: 39px; height: 39px; display: grid; place-items: center; color: white; background: var(--blue); border-radius: 10px 3px 10px 3px; font: 800 17px "Manrope", sans-serif; }
 .brand-mark span { font-size: 11px; color: #a7edff; }
+.university-logo { display: block; width: 210px; height: 42px; object-fit: contain; }
 .main-nav { display: flex; height: 100%; align-items: center; gap: 30px; }
 .main-nav a { height: 100%; display: flex; align-items: center; border-bottom: 2px solid transparent; color: var(--muted); font-size: 13px; font-weight: 700; }
 .main-nav a:hover, .main-nav a.active { color: var(--blue); border-color: var(--blue); }
@@ -113,7 +114,7 @@ h1, h2, h3 { font-family: "Manrope", sans-serif; }
   .main-nav { position: absolute; display: none; top: 65px; left: 0; right: 0; height: auto; padding: 8px 18px 14px; background: white; border-bottom: 1px solid var(--line); }
   .main-nav.open { display: grid; gap: 0; }
   .main-nav a { height: 42px; border-bottom: 0; }
-  .university-tag { display: none; }
+  .university-logo { width: clamp(76px, 24vw, 140px); height: auto; max-height: 34px; }
   .container { width: min(100% - 36px, 600px); }
   .hero { padding: 64px 0 58px; }
   .hero:after { right: -140px; top: 35px; width: 240px; opacity: .65; }
