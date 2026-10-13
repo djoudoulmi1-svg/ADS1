@@ -11,19 +11,25 @@ const chapterFiles = files
 
 const chapters = await Promise.all(chapterFiles.map(async ({ file, match }) => {
   const html = await readFile(resolve(root, file), "utf8");
-  const metadata = Object.fromEntries([...html.matchAll(/<meta\s+name=["'](hub-title|hub-description|hub-sections)["']\s+content=["']([^"']*)["']/gi)].map((entry) => [entry[1], entry[2].trim()]));
-  if (!metadata["hub-title"]) throw new Error(file + " is missing hub-title metadata");
+  const readMeta = name => {
+    const tag = html.match(new RegExp(`<meta\\s+name=["']${name}["']\\s+content=["']([^"']*)["']`, "i"));
+    return tag?.[1]?.trim() ?? "";
+  };
+  const title = readMeta("hub-title");
+  if (!title) {
+    throw new Error(`${file} is missing <meta name="hub-title" content="...">`);
+  }
   const number = Number(match[1]);
   return {
     id: String(number),
     number: String(number).padStart(2, "0"),
-    title: metadata["hub-title"],
+    title,
     available: true,
     file,
-    sectionCount: metadata["hub-sections"] || "Course lesson",
-    description: metadata["hub-description"] || ""
+    sectionCount: readMeta("hub-sections") || "Course lesson",
+    description: readMeta("hub-description")
   };
 }));
 
-await writeFile(resolve(root, "chapters.json"), JSON.stringify(chapters, null, 2) + "\n");
-console.log("Generated chapters.json with " + chapters.length + " chapter(s).");
+await writeFile(resolve(root, "chapters.json"), `${JSON.stringify(chapters, null, 2)}\n`);
+console.log(`Generated chapters.json with ${chapters.length} chapter(s).`);
