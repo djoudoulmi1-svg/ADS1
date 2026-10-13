@@ -207,10 +207,17 @@ h1, h2, h3 { font-family: "Manrope", sans-serif; }
 .admin-user-status { color: var(--green); font-size: 11px; font-weight: 700; }
 .admin-user-status.disabled { color: #b33c3c; }
 .admin-user-action { min-height: 36px; padding: 0 11px; }
+.admin-chapters-heading { margin: 19px 0 9px; }
+.admin-chapters-heading h3 { margin: 0; color: var(--navy); font: 700 16px "Manrope", sans-serif; }
+.admin-chapter-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+.admin-delete-chapter { color: #a33b3b; }
 @media (max-width: 760px) {
   .admin-panel { padding: 17px; }
   .admin-upload-grid { grid-template-columns: 1fr; gap: 0; }
   .admin-user-row { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
   .admin-user-status { grid-column: 2; grid-row: 1; justify-self: end; }
   .admin-user-action { grid-column: 1 / -1; justify-self: start; }
+  .admin-chapter-row { grid-template-columns: 1fr; gap: 8px; }
+  .admin-chapter-row .admin-user-action { grid-column: 1; }
 }
+

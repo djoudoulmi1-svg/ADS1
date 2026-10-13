@@ -78,6 +78,44 @@ Deno.serve(async request => {
     return jsonResponse({ error: "Invalid request body" }, 400);
   }
 
+  if (body.action === "delete-chapter") {
+    const chapterId = String(body.chapterId || "");
+    if (!/^extra-(?:[3-9]|[1-9][0-9])(?:-[a-f0-9]{20})?$/i.test(chapterId)) {
+      return jsonResponse({ error: "Only uploaded chapters can be removed here" }, 400);
+    }
+    const { data: chapter, error: chapterError } = await adminClient
+      .from("chapter_catalog")
+      .select("id, file_path")
+      .eq("id", chapterId)
+      .maybeSingle();
+    if (chapterError) return jsonResponse({ error: "Could not find this uploaded chapter" }, 500);
+    if (!chapter || !chapter.file_path.startsWith(`${chapterId}/`) || !chapter.file_path.endsWith(".html")) {
+      return jsonResponse({ error: "Uploaded chapter not found" }, 404);
+    }
+
+    const storage = adminClient.storage.from("course-chapters");
+    const { data: file, error: downloadError } = await storage.download(chapter.file_path);
+    if (downloadError || !file) return jsonResponse({ error: "Could not access the chapter file" }, 500);
+    const { error: storageError } = await storage.remove([chapter.file_path]);
+    if (storageError) return jsonResponse({ error: "Could not remove the chapter file" }, 500);
+
+    const { data: removedRows, error: catalogError } = await adminClient
+      .from("chapter_catalog")
+      .delete()
+      .eq("id", chapterId)
+      .select("id");
+    if (catalogError || !removedRows?.length) {
+      const { error: restoreError } = await storage.upload(chapter.file_path, file, {
+        contentType: "text/html",
+        cacheControl: "3600",
+        upsert: true
+      });
+      if (restoreError) console.error("Could not restore chapter file after catalog deletion failed:", restoreError.message);
+      return jsonResponse({ error: restoreError ? "Chapter removal failed and its file could not be restored; contact the site owner." : "Could not remove this chapter from the catalog." }, 500);
+    }
+    return jsonResponse({ ok: true, chapterId });
+  }
+
   if (body.action === "list-users") {
     const { data: userResult, error: listError } = await adminClient.auth.admin.listUsers({
       page: 1,

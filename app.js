@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 9202)
+Total output lines: 733
+
 const app = document.querySelector("#app");
 const nav = document.querySelector(".main-nav");
 const menuToggle = document.querySelector(".menu-toggle");
@@ -199,6 +202,11 @@ function accountPage() {
 }
 
 function adminPanel() {
+  const chapterRows = chapters.filter(chapter => chapter.remote).map(chapter => `
+    <div class="admin-chapter-row">
+      <div class="admin-user-identity"><strong>Chapter ${escapeHTML(chapter.number)} · ${escapeHTML(chapter.title)}</strong><span>${escapeHTML(chapter.description || "HTML lesson")}</span></div>
+      <button class="button secondary admin-user-action admin-delete-chapter" type="button" data-chapter-id="${escapeHTML(chapter.id)}">Remove chapter</button>
+    </div>`).join("");
   const rows = adminUsers.map(user => {
     const protectedUser = user.owner || user.administrator || user.userId === currentSession?.user?.id;
     const nextActive = user.disabled;
@@ -227,6 +235,8 @@ function adminPanel() {
       <p class="admin-help">Choose one HTML lesson file up to 5 MB. Keep its images and styles inside the file.</p>
       <button class="button" type="submit">Upload chapter</button>
     </form>
+    <div class="admin-chapters-heading"><h3>Uploaded chapters</h3></div>
+    <div class="admin-chapters" id="admin-chapters">${chapterRows || `<p class="admin-help">No uploaded chapters yet.</p>`}</div>
     <p class="account-notice" id="admin-notice" aria-live="polite">${escapeHTML(adminNotice)}</p>
     <div class="admin-users-heading"><h3>Student accounts</h3><button class="button secondary" id="refresh-admin-users" type="button">Refresh list</button></div>
     <div class="admin-users" id="admin-users">${rows || `<p class="admin-help">No student accounts found.</p>`}</div>
@@ -235,17 +245,21 @@ function adminPanel() {
 
 function setAdminNotice(message, kind = "") {
   adminNotice = message;
-  const notice = document.querySelector("#admin-notice");
-  if (notice) {
-    notice.textContent = message;
-    notice.className = `account-notice ${kind}`;
-  }
-}
+  const notice = document.querySelector("#admin-not…202 tokens truncated…
+  if (!window.confirm(`Remove Chapter ${chapter.number}: ${chapter.title} from the website? Its uploaded lesson file will also be deleted.`)) return;
 
-function bindAdminForms() {
-  document.querySelector("#chapter-upload-form")?.addEventListener("submit", uploadChapter);
-  document.querySelector("#refresh-admin-users")?.addEventListener("click", refreshAdminUsers);
-  document.querySelector("#admin-users")?.addEventListener("click", handleAdminUserAction);
+  button.disabled = true;
+  setAdminNotice("Removing chapter…");
+  const { data, error } = await backendClient.functions.invoke("admin-tools", {
+    body: { action: "delete-chapter", chapterId: chapter.id }
+  });
+  if (error || !data?.ok) {
+    setAdminNotice(data?.error || error?.message || "Could not remove this chapter.", "error");
+    button.disabled = false;
+    return;
+  }
+  adminNotice = `Chapter ${chapter.number} was removed.`;
+  await loadChapterCatalog();
 }
 
 async function refreshAdminUsers() {
@@ -327,11 +341,12 @@ async function uploadChapter(event) {
     return;
   }
 
-  const id = `extra-${number}`;
-  if (chapters.some(chapter => chapter.id === id)) {
+  const chapterNumber = String(number).padStart(2, "0");
+  if (chapters.some(chapter => String(chapter.number).padStart(2, "0") === chapterNumber)) {
     setAdminNotice("That chapter number is already in use.", "error");
     return;
   }
+  const id = `extra-${number}-${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`;
   const path = `${id}/${crypto.randomUUID()}.html`;
   setAdminNotice("Uploading the lesson…");
   const { error: uploadError } = await backendClient.storage
@@ -344,7 +359,7 @@ async function uploadChapter(event) {
 
   const { error: catalogError } = await backendClient.from("chapter_catalog").insert({
     id,
-    number: String(number).padStart(2, "0"),
+    number: chapterNumber,
     title,
     description,
     section_count: "HTML lesson",
