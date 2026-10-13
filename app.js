@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 9202)
-Total output lines: 733
-
 const app = document.querySelector("#app");
 const nav = document.querySelector(".main-nav");
 const menuToggle = document.querySelector(".menu-toggle");
@@ -245,7 +242,25 @@ function adminPanel() {
 
 function setAdminNotice(message, kind = "") {
   adminNotice = message;
-  const notice = document.querySelector("#admin-not…202 tokens truncated…
+  const notice = document.querySelector("#admin-notice");
+  if (notice) {
+    notice.textContent = message;
+    notice.className = `account-notice ${kind}`;
+  }
+}
+
+function bindAdminForms() {
+  document.querySelector("#chapter-upload-form")?.addEventListener("submit", uploadChapter);
+  document.querySelector("#refresh-admin-users")?.addEventListener("click", refreshAdminUsers);
+  document.querySelector("#admin-users")?.addEventListener("click", handleAdminUserAction);
+  document.querySelector("#admin-chapters")?.addEventListener("click", handleAdminChapterAction);
+}
+
+async function handleAdminChapterAction(event) {
+  const button = event.target.closest("button[data-chapter-id]");
+  if (!button || !currentIsAdmin) return;
+  const chapter = chapters.find(item => item.remote && item.id === button.dataset.chapterId);
+  if (!chapter) return;
   if (!window.confirm(`Remove Chapter ${chapter.number}: ${chapter.title} from the website? Its uploaded lesson file will also be deleted.`)) return;
 
   button.disabled = true;
