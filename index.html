@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="supabase-config.js?v=student-accounts-setup" defer></script>
-  <script src="app.js?v=course-assistant-2" defer></script>
+  <script src="app.js?v=assistant-removed-1" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -27,25 +27,6 @@
     </nav>
   </header>
   <main id="app" tabindex="-1"></main>
-  <button class="assistant-launcher" id="assistant-launcher" type="button" aria-controls="assistant-panel" aria-expanded="false">
-    <span aria-hidden="true">✦</span> Ask ADS1 assistant
-  </button>
-  <aside class="assistant-panel" id="assistant-panel" aria-label="ADS1 course assistant" hidden>
-    <div class="assistant-header">
-      <div><strong>ADS1 Assistant</strong><span>Questions about this learning hub and its lessons</span></div>
-      <button class="assistant-close" id="assistant-close" type="button" aria-label="Close assistant">×</button>
-    </div>
-    <div class="assistant-messages" id="assistant-messages" aria-live="polite">
-      <p class="assistant-message assistant-message-bot">Hello! Ask me about ADS1 lessons, algorithms, programming concepts, or how to use this site. I’ll keep our conversation focused on ADS1.</p>
-    </div>
-    <p class="assistant-status" id="assistant-status">Sign in to use the assistant.</p>
-    <form class="assistant-form" id="assistant-form">
-      <label class="sr-only" for="assistant-input">Your ADS1 question</label>
-      <textarea id="assistant-input" maxlength="1000" rows="2" placeholder="Ask a question about ADS1…" required></textarea>
-      <button class="button" type="submit" id="assistant-send">Send</button>
-    </form>
-    <p class="assistant-privacy">Your question is sent to the AI provider to generate a reply. ADS1 does not save chat messages.</p>
-  </aside>
   <footer class="site-footer"><a class="brand brand-small" href="#home"><span class="brand-mark">A<span>1</span></span><span>ADS1 <small>LEARNING HUB</small></span></a><span>Algorithmique et Structures de Données</span><span>Ouargla, Algeria</span></footer>
 </body>
 </html>
