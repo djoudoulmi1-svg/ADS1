@@ -33,13 +33,22 @@ function crumbs(items) {
 }
 
 function chapterCard(chapter) {
-  const status = "Available";
-  const action = chapter.available ? "Open chapter <span aria-hidden=\"true\">→</span>" : "Not available yet";
+  const status = chapter.available ? "Available" : "Waiting for upload";
+  const action = "Open chapter <span aria-hidden=\"true\">→</span>";
   const description = chapter.description || "Course lesson supplied by the course team.";
   return `<article class="chapter-card ${chapter.available ? "available" : "unavailable"}" data-search="${chapter.title.toLowerCase()}">
-    <div class="card-top"><span class="chapter-number">CHAPTER ${escapeHTML(chapter.number)}</span><span class="status">${status}</span></div>
+    <div class="card-top"><span class="chapter-number">CHAPTER ${escapeHTML(chapter.number)}</span><span class="status ${chapter.available ? "" : "pending"}">${status}</span></div>
     <h3>${escapeHTML(chapter.title)}</h3><p>${escapeHTML(description)}</p>
     ${chapter.available ? `<a class="card-action" href="#chapter/${chapter.id}">${action}</a>` : `<span class="card-action">${action}</span>`}
+  </article>`;
+}
+
+function waitingChaptersCard() {
+  return `<article class="chapter-card unavailable" aria-label="Other chapters waiting to be uploaded">
+    <div class="card-top"><span class="chapter-number">MORE CHAPTERS</span><span class="status pending">Waiting for upload</span></div>
+    <h3>Other chapters</h3>
+    <p>Additional course chapters will appear here when their lesson files are uploaded.</p>
+    <span class="card-action">Not available yet</span>
   </article>`;
 }
 
@@ -68,7 +77,7 @@ function home() {
     <div class="section-top"><div><span class="eyebrow">Course library</span><h2>Choose a chapter</h2></div>
       <label class="search-wrap"><span class="search-icon" aria-hidden="true"></span><input id="chapter-search" type="search" placeholder="Search available material" aria-label="Search chapters"></label>
     </div>
-    <div class="chapter-grid" id="chapter-grid">${chapters.map(chapterCard).join("")}</div>
+    <div class="chapter-grid" id="chapter-grid">${chapters.map(chapterCard).join("")}${waitingChaptersCard()}</div>
     <p class="content-note">Only source material that has been provided is shown as available. Additional chapter titles and lessons will be added from the official course files.</p>
   </div></section>`;
 }
