@@ -187,3 +187,30 @@ h1, h2, h3 { font-family: "Manrope", sans-serif; }
   .site-footer { align-items: flex-start; flex-wrap: wrap; padding: 13px 18px; }
   .site-footer > span:nth-child(2) { margin: 0; }
 }
+.admin-panel { margin-top: 24px; padding: 23px; border: 1px solid var(--line); border-top: 3px solid var(--blue); background: white; border-radius: 5px; }
+.admin-panel h2 { margin: 6px 0 8px; font-size: 22px; }
+.admin-panel > p:not(.account-notice) { margin: 0 0 19px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.admin-upload-form { padding: 18px; border: 1px solid var(--line); background: var(--paper); border-radius: 4px; }
+.admin-upload-form h3, .admin-users-heading h3 { margin: 0 0 12px; color: var(--navy); font: 700 16px "Manrope", sans-serif; }
+.admin-upload-form label { display: block; margin: 12px 0 5px; color: var(--navy); font-size: 12px; font-weight: 700; }
+.admin-upload-form input, .admin-upload-form textarea { display: block; width: 100%; min-height: 42px; margin-top: 5px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 4px; color: var(--navy); background: white; font: inherit; }
+.admin-upload-form textarea { resize: vertical; }
+.admin-upload-grid { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 14px; }
+.admin-help { margin: 8px 0 14px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.admin-users-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 18px 0 10px; }
+.admin-users-heading h3 { margin: 0; }
+.admin-user-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+.admin-user-identity { min-width: 0; }
+.admin-user-identity strong, .admin-user-identity span { display: block; overflow-wrap: anywhere; }
+.admin-user-identity strong { color: var(--navy); font-size: 13px; }
+.admin-user-identity span { margin-top: 3px; color: var(--muted); font-size: 12px; }
+.admin-user-status { color: var(--green); font-size: 11px; font-weight: 700; }
+.admin-user-status.disabled { color: #b33c3c; }
+.admin-user-action { min-height: 36px; padding: 0 11px; }
+@media (max-width: 760px) {
+  .admin-panel { padding: 17px; }
+  .admin-upload-grid { grid-template-columns: 1fr; gap: 0; }
+  .admin-user-row { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .admin-user-status { grid-column: 2; grid-row: 1; justify-self: end; }
+  .admin-user-action { grid-column: 1 / -1; justify-self: start; }
+}

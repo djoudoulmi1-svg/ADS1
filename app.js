@@ -16,6 +16,9 @@ let currentProfile = null;
 let chapterProgress = new Set();
 let sharedProfiles = [];
 let accountNotice = "";
+let currentIsAdmin = false;
+let adminUsers = [];
+let adminNotice = "";
 const bundledChapters = [
   {
     id: "1",
@@ -51,7 +54,7 @@ function chapterCard(chapter) {
   const status = chapter.available ? "Available" : "Waiting for upload";
   const action = "Open chapter <span aria-hidden=\"true\">→</span>";
   const description = chapter.description || "Course lesson supplied by the course team.";
-  return `<article class="chapter-card ${chapter.available ? "available" : "unavailable"}" data-search="${chapter.title.toLowerCase()}">
+  return `<article class="chapter-card ${chapter.available ? "available" : "unavailable"}" data-search="${escapeHTML(chapter.title.toLowerCase())}">
     <div class="card-top"><span class="chapter-number">CHAPTER ${escapeHTML(chapter.number)}</span><span class="status ${chapter.available ? "" : "pending"}">${status}</span></div>
     <h3>${escapeHTML(chapter.title)}</h3><p>${escapeHTML(description)}</p>
     ${chapter.available ? `<a class="card-action" href="#chapter/${chapter.id}">${action}</a>` : `<span class="card-action">${action}</span>`}
@@ -92,8 +95,8 @@ function home() {
     <div class="section-top"><div><span class="eyebrow">Course library</span><h2>Choose a chapter</h2></div>
       <label class="search-wrap"><span class="search-icon" aria-hidden="true"></span><input id="chapter-search" type="search" placeholder="Search available material" aria-label="Search chapters"></label>
     </div>
-    <div class="chapter-grid" id="chapter-grid">${chapters.map(chapterCard).join("")}${waitingChaptersCard()}</div>
-    <p class="content-note">Only source material that has been provided is shown as available. Additional chapter titles and lessons will be added from the official course files.</p>
+    <div class="chapter-grid" id="chapter-grid">${chapters.map(chapterCard).join("")}${chapters.some(chapter => chapter.remote) ? "" : waitingChaptersCard()}</div>
+    <p class="content-note">Only supplied course material is shown as available. New chapters uploaded by an administrator appear here automatically.</p>
   </div></section>`;
 }
 
@@ -103,10 +106,10 @@ function chapterPage(id) {
   const completed = isChapterComplete(chapter.id);
   return `<section class="container page-shell fade-in">
     ${crumbs([{ label: "Home", href: "#home" }, { label: "Chapters", href: "#chapters" }, { label: `Chapter ${chapter.number}` }])}
-    <div class="chapter-intro"><div><span class="eyebrow">Chapter ${chapter.number} · Available lesson</span><h1>${chapter.title}</h1>
-      <p>${chapter.description}</p>
-    </div><aside class="chapter-aside"><span>Course material</span><strong>${chapter.sectionCount}</strong></aside></div>
-    <div class="lesson-row"><span class="lesson-index">01</span><div><h2>${chapter.title}</h2><p>Integrated lesson · source content and activities preserved</p></div><a class="button" href="#lesson/${chapter.id}">${completed ? "Continue lesson" : "Start lesson"}<span class="arrow" aria-hidden="true">→</span></a></div>
+    <div class="chapter-intro"><div><span class="eyebrow">Chapter ${escapeHTML(chapter.number)} · Available lesson</span><h1>${escapeHTML(chapter.title)}</h1>
+      <p>${escapeHTML(chapter.description)}</p>
+    </div><aside class="chapter-aside"><span>Course material</span><strong>${escapeHTML(chapter.sectionCount)}</strong></aside></div>
+    <div class="lesson-row"><span class="lesson-index">01</span><div><h2>${escapeHTML(chapter.title)}</h2><p>Integrated lesson · source content and activities preserved</p></div><a class="button" href="#lesson/${escapeHTML(chapter.id)}">${completed ? "Continue lesson" : "Start lesson"}<span class="arrow" aria-hidden="true">→</span></a></div>
     <div class="content-note">The learning outcomes and section list are presented in the lesson as supplied. ${currentSession ? "Your completion status is saved to your account." : "Without an account, completion is saved only in this browser."}${chapter.id === "1" ? " The supplied page labels this lesson Chapter 2, while its cited PDF title identifies it as Chapter 1; this hub lists it as Chapter 1 to keep the separately supplied Sequential Algorithm lesson as Chapter 2." : ""}</div>
   </section>`;
 }
@@ -114,8 +117,8 @@ function chapterPage(id) {
 function lessonPage(id) {
   const chapter = chapters.find(item => item.id === id && item.available);
   if (!chapter) return home();
-  return `<div class="lesson-toolbar"><a class="button secondary" href="#chapter/${chapter.id}"><span aria-hidden="true">←</span> Back to chapter</a><div class="lesson-toolbar-title"><strong>${chapter.title}</strong><span>Chapter ${chapter.number} · University of Ouargla</span></div><button class="button secondary" id="mark-complete" data-chapter="${chapter.id}" type="button" ${isChapterComplete(chapter.id) ? "disabled" : ""}>${isChapterComplete(chapter.id) ? "Completed" : "Mark complete"}</button></div>
-  <iframe class="lesson-frame" src="${chapter.file}" title="Chapter ${chapter.number}: ${chapter.title} lesson" allow="fullscreen"></iframe>`;
+  return `<div class="lesson-toolbar"><a class="button secondary" href="#chapter/${escapeHTML(chapter.id)}"><span aria-hidden="true">←</span> Back to chapter</a><div class="lesson-toolbar-title"><strong>${escapeHTML(chapter.title)}</strong><span>Chapter ${escapeHTML(chapter.number)} · University of Ouargla</span></div><button class="button secondary" id="mark-complete" data-chapter="${escapeHTML(chapter.id)}" type="button" ${isChapterComplete(chapter.id) ? "disabled" : ""}>${isChapterComplete(chapter.id) ? "Completed" : "Mark complete"}</button></div>
+  <iframe class="lesson-frame" src="${escapeHTML(chapter.file)}" title="Chapter ${escapeHTML(chapter.number)}: ${escapeHTML(chapter.title)} lesson" allow="fullscreen"${chapter.remote ? ' sandbox="allow-scripts allow-forms"' : ""}></iframe>`;
 }
 
 function isChapterComplete(chapterId) {
@@ -161,6 +164,7 @@ function accountPage() {
       </section>
       <form id="display-name-form" class="account-name-form"><label for="display-name">Display name</label><div><input id="display-name" name="displayName" maxlength="40" minlength="2" value="${escapeHTML(currentProfile.display_name)}" required><button class="button secondary" type="submit">Update name</button></div></form>
       <p class="account-notice" id="account-notice" aria-live="polite">${escapeHTML(accountNotice)}</p>
+      ${currentIsAdmin ? adminPanel() : ""}
     </section>`;
   }
 
@@ -193,6 +197,163 @@ function accountPage() {
   </section>`;
 }
 
+function adminPanel() {
+  const rows = adminUsers.map(user => {
+    const protectedUser = user.administrator || user.userId === currentSession?.user?.id;
+    const nextActive = user.disabled;
+    const actionLabel = user.disabled ? "Reactivate" : "Deactivate";
+    const stateLabel = user.administrator ? "Administrator" : user.disabled ? "Disabled" : "Active";
+    return `<div class="admin-user-row">
+      <div class="admin-user-identity"><strong>${escapeHTML(user.displayName || "Student")}</strong><span>${escapeHTML(user.email)}</span></div>
+      <span class="admin-user-status ${user.disabled ? "disabled" : ""}">${stateLabel}</span>
+      <button class="button secondary admin-user-action" type="button" data-user-id="${escapeHTML(user.userId)}" data-active="${nextActive}" ${protectedUser ? "disabled" : ""}>${actionLabel}</button>
+    </div>`;
+  }).join("");
+
+  return `<section class="admin-panel" aria-labelledby="admin-heading">
+    <span class="eyebrow">Site administration</span><h2 id="admin-heading">Administrator tools</h2>
+    <p>Only the approved administrators can add course chapters or change student access.</p>
+    <form id="chapter-upload-form" class="admin-upload-form">
+      <h3>Upload a chapter</h3>
+      <div class="admin-upload-grid">
+        <label>Chapter number<input name="number" type="number" min="3" max="99" required></label>
+        <label>Chapter title<input name="title" maxlength="120" required></label>
+      </div>
+      <label>Description<textarea name="description" maxlength="1000" rows="3"></textarea></label>
+      <label>Self-contained HTML lesson<input name="lesson" type="file" accept=".html,text/html" required></label>
+      <p class="admin-help">Choose one HTML lesson file up to 5 MB. Keep its images and styles inside the file.</p>
+      <button class="button" type="submit">Upload chapter</button>
+    </form>
+    <p class="account-notice" id="admin-notice" aria-live="polite">${escapeHTML(adminNotice)}</p>
+    <div class="admin-users-heading"><h3>Student accounts</h3><button class="button secondary" id="refresh-admin-users" type="button">Refresh list</button></div>
+    <div class="admin-users" id="admin-users">${rows || `<p class="admin-help">No student accounts found.</p>`}</div>
+  </section>`;
+}
+
+function setAdminNotice(message, kind = "") {
+  adminNotice = message;
+  const notice = document.querySelector("#admin-notice");
+  if (notice) {
+    notice.textContent = message;
+    notice.className = `account-notice ${kind}`;
+  }
+}
+
+function bindAdminForms() {
+  document.querySelector("#chapter-upload-form")?.addEventListener("submit", uploadChapter);
+  document.querySelector("#refresh-admin-users")?.addEventListener("click", refreshAdminUsers);
+  document.querySelector("#admin-users")?.addEventListener("click", changeStudentAccess);
+}
+
+async function refreshAdminUsers() {
+  if (!currentIsAdmin) return;
+  setAdminNotice("Loading student accounts…");
+  const { data, error } = await backendClient.functions.invoke("admin-tools", {
+    body: { action: "list-users" }
+  });
+  if (error || !Array.isArray(data?.users)) {
+    setAdminNotice(error?.message || "Could not load student accounts.", "error");
+    return;
+  }
+  adminUsers = data.users;
+  adminNotice = "";
+  render();
+}
+
+async function changeStudentAccess(event) {
+  const button = event.target.closest("button[data-user-id]");
+  if (!button || !currentIsAdmin) return;
+  const active = button.dataset.active === "true";
+  const action = active ? "reactivate" : "disable";
+  if (!window.confirm(`Are you sure you want to ${action} this student account?`)) return;
+
+  button.disabled = true;
+  setAdminNotice(active ? "Reactivating account…" : "Disabling account…");
+  const { data, error } = await backendClient.functions.invoke("admin-tools", {
+    body: { action: "set-user-active", userId: button.dataset.userId, active }
+  });
+  if (error || !data?.ok) {
+    setAdminNotice(data?.error || error?.message || "Could not change this account.", "error");
+    button.disabled = false;
+    return;
+  }
+  await refreshAdminUsers();
+  setAdminNotice(active ? "Student account reactivated." : "Student account disabled.", "success");
+}
+
+async function uploadChapter(event) {
+  event.preventDefault();
+  if (!currentIsAdmin || !currentSession) return;
+  const form = new FormData(event.currentTarget);
+  const numberValue = String(form.get("number") || "").trim();
+  const number = Number(numberValue);
+  const title = String(form.get("title") || "").trim();
+  const description = String(form.get("description") || "").trim();
+  const file = form.get("lesson");
+
+  if (!Number.isInteger(number) || number < 3 || number > 99 || !title || !(file instanceof File)) {
+    setAdminNotice("Enter a valid chapter number, title, and HTML lesson.", "error");
+    return;
+  }
+  if (!file.name.toLowerCase().endsWith(".html") || (file.type && file.type !== "text/html") || file.size > 5 * 1024 * 1024) {
+    setAdminNotice("Choose an HTML file no larger than 5 MB.", "error");
+    return;
+  }
+
+  const id = `extra-${number}`;
+  if (chapters.some(chapter => chapter.id === id)) {
+    setAdminNotice("That chapter number is already in use.", "error");
+    return;
+  }
+  const path = `${id}/${crypto.randomUUID()}.html`;
+  setAdminNotice("Uploading the lesson…");
+  const { error: uploadError } = await backendClient.storage
+    .from("course-chapters")
+    .upload(path, file, { contentType: "text/html", cacheControl: "3600", upsert: false });
+  if (uploadError) {
+    setAdminNotice(uploadError.message, "error");
+    return;
+  }
+
+  const { error: catalogError } = await backendClient.from("chapter_catalog").insert({
+    id,
+    number: String(number).padStart(2, "0"),
+    title,
+    description,
+    section_count: "HTML lesson",
+    file_path: path,
+    available: true
+  });
+  if (catalogError) {
+    await backendClient.storage.from("course-chapters").remove([path]);
+    setAdminNotice(catalogError.message, "error");
+    return;
+  }
+
+  adminNotice = `Chapter ${String(number).padStart(2, "0")} is now available.`;
+  await loadChapterCatalog();
+  render();
+}
+
+async function loadAdminState() {
+  currentIsAdmin = false;
+  adminUsers = [];
+  if (!backendClient || !currentSession) return;
+
+  const { data, error } = await backendClient.rpc("is_site_admin");
+  if (error || data !== true) return;
+  currentIsAdmin = true;
+  const { data: result, error: listError } = await backendClient.functions.invoke("admin-tools", {
+    body: { action: "list-users" }
+  });
+  if (listError || !Array.isArray(result?.users)) {
+    adminNotice = "Administrator access is ready, but the account manager needs setup.";
+    return;
+  }
+  adminUsers = result.users;
+  adminNotice = "";
+}
+
 function aboutPage() {
   return `<section class="container about-band fade-in">${crumbs([{ label: "Home", href: "#home" }, { label: "About" }])}
     <span class="eyebrow">About the hub</span><h1>ADS1 Learning Hub</h1>
@@ -210,6 +371,7 @@ function render() {
   menuToggle.setAttribute("aria-expanded", "false");
   if (page === "lesson") document.querySelector("#mark-complete").addEventListener("click", markComplete);
   if (page === "account" && backendClient) bindAccountForms();
+  if (page === "account" && currentIsAdmin) bindAdminForms();
   if (page === "home" || page === "chapters") document.querySelector("#chapter-search").addEventListener("input", filterChapters);
   if (page === "lesson") app.focus({ preventScroll: true });
 }
@@ -268,6 +430,7 @@ async function signUp(event) {
   }
   currentSession = data.session;
   await loadAccountData(data.session.user);
+  await loadAdminState();
   await syncRoster();
   render();
 }
@@ -286,6 +449,7 @@ async function signIn(event) {
   }
   currentSession = data.session;
   await loadAccountData(data.user);
+  await loadAdminState();
   await syncRoster();
   render();
 }
@@ -296,6 +460,9 @@ async function signOut() {
   else {
     currentSession = null;
     currentProfile = null;
+    currentIsAdmin = false;
+    adminUsers = [];
+    adminNotice = "";
     chapterProgress.clear();
     sharedProfiles = [];
     accountNotice = "";
@@ -398,15 +565,19 @@ async function initializeAccounts() {
   if (!error && data.session) {
     currentSession = data.session;
     await loadAccountData(data.session.user);
+    await loadAdminState();
   }
   backendClient.auth.onAuthStateChange((_event, session) => {
     window.setTimeout(async () => {
       currentSession = session;
       if (session?.user) {
         await loadAccountData(session.user);
+        await loadAdminState();
         await syncRoster();
       } else {
         currentProfile = null;
+        currentIsAdmin = false;
+        adminUsers = [];
         chapterProgress.clear();
         sharedProfiles = [];
       }
@@ -450,33 +621,44 @@ async function markComplete(event) {
 }
 
 async function loadChapterCatalog() {
+  let catalog = bundledChapters;
   try {
     const response = await fetch("./chapters.json", { cache: "no-store" });
-    if (!response.ok) throw new Error(`Catalog request failed: ${response.status}`);
-    const catalog = await response.json();
-    if (Array.isArray(catalog) && catalog.length) chapters = catalog;
+    if (!response.ok) throw new Error("Catalog request failed");
+    const staticCatalog = await response.json();
+    if (Array.isArray(staticCatalog) && staticCatalog.length) catalog = staticCatalog;
   } catch {
-    chapters = bundledChapters;
+    catalog = bundledChapters;
   }
+
+  if (backendClient) {
+    const { data, error } = await backendClient.from("chapter_catalog")
+      .select("id, number, title, description, file_path, section_count")
+      .eq("available", true)
+      .order("number");
+    if (!error && Array.isArray(data)) {
+      const remoteChapters = data.map(chapter => ({
+        id: chapter.id,
+        number: chapter.number,
+        title: chapter.title,
+        description: chapter.description,
+        sectionCount: chapter.section_count,
+        file: backendClient.storage.from("course-chapters").getPublicUrl(chapter.file_path).data.publicUrl,
+        remote: true,
+        available: true
+      }));
+      const remoteIds = new Set(remoteChapters.map(chapter => chapter.id));
+      catalog = [...catalog.filter(chapter => !remoteIds.has(chapter.id)), ...remoteChapters];
+    }
+  }
+
+  chapters = catalog;
   render();
 }
-
 menuToggle.addEventListener("click", () => {
   const open = nav.classList.toggle("open");
   menuToggle.setAttribute("aria-expanded", String(open));
 });
-async function loadChapterCatalog() {
-  try {
-    const response = await fetch("./chapters.json", { cache: "no-store" });
-    if (!response.ok) throw new Error(`Catalog request failed: ${response.status}`);
-    const catalog = await response.json();
-    if (Array.isArray(catalog) && catalog.length) chapters = catalog;
-  } catch {
-    chapters = bundledChapters;
-  }
-  render();
-}
-
 async function startApplication() {
   await loadChapterCatalog();
   await initializeAccounts();
@@ -486,3 +668,4 @@ async function startApplication() {
 window.addEventListener("hashchange", render);
 render();
 startApplication();
+

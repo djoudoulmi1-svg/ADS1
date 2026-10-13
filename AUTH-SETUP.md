@@ -49,3 +49,6 @@ Only `SHEET_SYNC_URL` is specific to the roster bridge. The Edge Function passes
 4. Mark a chapter complete from its lesson toolbar while signed in. The account's percentage should update and persist after signing out and back in.
 
 If the Sheet is unavailable, sign-in and progress still work; the Account page reports that roster sync needs attention. The private Sheet belongs to the Google account used to create and deploy the Apps Script web app.
+
+For the optional administrator panel, follow [ADMIN-SETUP.md](ADMIN-SETUP.md) after both administrators have confirmed their accounts.
+

@@ -1,2 +1,6 @@
 [functions.sync-roster]
 verify_jwt = true
+
+[functions.admin-tools]
+verify_jwt = true
+
