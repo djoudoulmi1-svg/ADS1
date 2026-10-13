@@ -5,5 +5,5 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.course-assistant]
-verify_jwt = true
+verify_jwt = false
 
