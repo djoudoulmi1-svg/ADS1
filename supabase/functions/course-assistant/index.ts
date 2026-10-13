@@ -97,10 +97,25 @@ Deno.serve(async request => {
     });
     if (!response.ok) {
       console.error("OpenAI assistant request failed with status:", response.status);
+      if (response.status === 401 || response.status === 403) {
+        return jsonResponse({ error: "The OpenAI API key was rejected. Check the OPENAI_API_KEY secret in Supabase." }, 502);
+      }
+      if (response.status === 429) {
+        return jsonResponse({ error: "The OpenAI account has reached a usage limit or needs billing setup." }, 502);
+      }
       return jsonResponse({ error: "The assistant could not answer just now. Please try again later." }, 502);
     }
     const result = await response.json();
-    const answer = typeof result.output_text === "string" ? result.output_text.trim() : "";
+    const answerFromOutput = Array.isArray(result.output)
+      ? result.output.flatMap((item: Record<string, unknown>) =>
+        item.type === "message" && Array.isArray(item.content)
+          ? item.content.flatMap((part: Record<string, unknown>) =>
+            part.type === "output_text" && typeof part.text === "string" ? [part.text] : [])
+          : [])
+        .join("\n")
+        .trim()
+      : "";
+    const answer = typeof result.output_text === "string" ? result.output_text.trim() : answerFromOutput;
     if (!answer) return jsonResponse({ error: "The assistant returned an empty answer. Please try again." }, 502);
     return jsonResponse({ answer });
   } catch (error) {

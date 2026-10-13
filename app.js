@@ -810,7 +810,15 @@ assistantForm.addEventListener("submit", async event => {
     updateAssistantStatus();
   } catch (error) {
     waitingMessage.remove();
-    const message = error?.context?.body?.error || error?.message || "Please try again in a moment.";
+    let message = error?.message || "Please try again in a moment.";
+    if (error?.context && typeof error.context.clone === "function") {
+      try {
+        const responseBody = await error.context.clone().json();
+        message = responseBody?.error || message;
+      } catch {
+        // Keep the fallback message when the function response is not JSON.
+      }
+    }
     addAssistantMessage(`Sorry, I could not answer just now. ${message}`, "bot");
     updateAssistantStatus("Check your sign-in or ask again later.");
   } finally {
