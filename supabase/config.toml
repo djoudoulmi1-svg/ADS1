@@ -4,3 +4,6 @@ verify_jwt = true
 [functions.admin-tools]
 verify_jwt = true
 
+[functions.course-assistant]
+verify_jwt = true
+
