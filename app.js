@@ -17,6 +17,7 @@ let chapterProgress = new Set();
 let sharedProfiles = [];
 let accountNotice = "";
 let currentIsAdmin = false;
+let currentIsOwner = false;
 let adminUsers = [];
 let adminNotice = "";
 const bundledChapters = [
@@ -199,20 +200,22 @@ function accountPage() {
 
 function adminPanel() {
   const rows = adminUsers.map(user => {
-    const protectedUser = user.administrator || user.userId === currentSession?.user?.id;
+    const protectedUser = user.owner || user.administrator || user.userId === currentSession?.user?.id;
     const nextActive = user.disabled;
     const actionLabel = user.disabled ? "Reactivate" : "Deactivate";
-    const stateLabel = user.administrator ? "Administrator" : user.disabled ? "Disabled" : "Active";
+    const stateLabel = user.owner ? "Site owner" : user.administrator ? (user.disabled ? "Administrator · Disabled" : "Administrator") : user.disabled ? "Disabled" : "Active";
+    const adminAction = user.administrator ? "Revoke admin" : "Make admin";
     return `<div class="admin-user-row">
       <div class="admin-user-identity"><strong>${escapeHTML(user.displayName || "Student")}</strong><span>${escapeHTML(user.email)}</span></div>
       <span class="admin-user-status ${user.disabled ? "disabled" : ""}">${stateLabel}</span>
+      ${currentIsOwner && !user.owner ? `<button class="button secondary admin-user-action" type="button" data-admin-user-id="${escapeHTML(user.userId)}" data-is-admin="${user.administrator}" ${!user.confirmed || (user.disabled && !user.administrator) ? "disabled title=\"Account must be confirmed and active to become an administrator\"" : ""}>${adminAction}</button>` : ""}
       <button class="button secondary admin-user-action" type="button" data-user-id="${escapeHTML(user.userId)}" data-active="${nextActive}" ${protectedUser ? "disabled" : ""}>${actionLabel}</button>
     </div>`;
   }).join("");
 
   return `<section class="admin-panel" aria-labelledby="admin-heading">
     <span class="eyebrow">Site administration</span><h2 id="admin-heading">Administrator tools</h2>
-    <p>Only the approved administrators can add course chapters or change student access.</p>
+    <p>${currentIsOwner ? "You are the only site owner. You can appoint or remove administrators; appointed administrators can upload chapters and manage student access." : "Only the site owner can appoint administrators. You can upload chapters and manage student access."}</p>
     <form id="chapter-upload-form" class="admin-upload-form">
       <h3>Upload a chapter</h3>
       <div class="admin-upload-grid">
@@ -242,7 +245,7 @@ function setAdminNotice(message, kind = "") {
 function bindAdminForms() {
   document.querySelector("#chapter-upload-form")?.addEventListener("submit", uploadChapter);
   document.querySelector("#refresh-admin-users")?.addEventListener("click", refreshAdminUsers);
-  document.querySelector("#admin-users")?.addEventListener("click", changeStudentAccess);
+  document.querySelector("#admin-users")?.addEventListener("click", handleAdminUserAction);
 }
 
 async function refreshAdminUsers() {
@@ -279,6 +282,30 @@ async function changeStudentAccess(event) {
   }
   await refreshAdminUsers();
   setAdminNotice(active ? "Student account reactivated." : "Student account disabled.", "success");
+}
+
+async function handleAdminUserAction(event) {
+  const adminButton = event.target.closest("button[data-admin-user-id]");
+  if (adminButton) {
+    if (!currentIsOwner) return;
+    const administrator = adminButton.dataset.isAdmin !== "true";
+    const action = administrator ? "grant administrator access to" : "remove administrator access from";
+    if (!window.confirm(`Are you sure you want to ${action} this account?`)) return;
+    adminButton.disabled = true;
+    setAdminNotice(administrator ? "Granting administrator access…" : "Removing administrator access…");
+    const { data, error } = await backendClient.functions.invoke("admin-tools", {
+      body: { action: "set-admin-status", userId: adminButton.dataset.adminUserId, administrator }
+    });
+    if (error || !data?.ok) {
+      setAdminNotice(data?.error || error?.message || "Could not change administrator access.", "error");
+      adminButton.disabled = false;
+      return;
+    }
+    await refreshAdminUsers();
+    setAdminNotice(administrator ? "Administrator access granted." : "Administrator access removed.", "success");
+    return;
+  }
+  await changeStudentAccess(event);
 }
 
 async function uploadChapter(event) {
@@ -337,12 +364,15 @@ async function uploadChapter(event) {
 
 async function loadAdminState() {
   currentIsAdmin = false;
+  currentIsOwner = false;
   adminUsers = [];
   if (!backendClient || !currentSession) return;
 
   const { data, error } = await backendClient.rpc("is_site_admin");
   if (error || data !== true) return;
   currentIsAdmin = true;
+  const { data: ownerData } = await backendClient.rpc("is_site_owner");
+  currentIsOwner = ownerData === true;
   const { data: result, error: listError } = await backendClient.functions.invoke("admin-tools", {
     body: { action: "list-users" }
   });
@@ -461,6 +491,7 @@ async function signOut() {
     currentSession = null;
     currentProfile = null;
     currentIsAdmin = false;
+    currentIsOwner = false;
     adminUsers = [];
     adminNotice = "";
     chapterProgress.clear();
@@ -577,6 +608,7 @@ async function initializeAccounts() {
       } else {
         currentProfile = null;
         currentIsAdmin = false;
+        currentIsOwner = false;
         adminUsers = [];
         chapterProgress.clear();
         sharedProfiles = [];

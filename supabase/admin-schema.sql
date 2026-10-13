@@ -3,6 +3,12 @@ create table if not exists public.site_admins (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.site_owners (
+  singleton boolean primary key default true check (singleton),
+  user_id uuid not null unique references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.disabled_users (
   user_id uuid primary key references auth.users (id) on delete cascade,
   disabled_at timestamptz not null default now(),
@@ -21,12 +27,15 @@ create table if not exists public.chapter_catalog (
 );
 
 alter table public.site_admins enable row level security;
+alter table public.site_owners enable row level security;
 alter table public.disabled_users enable row level security;
 alter table public.chapter_catalog enable row level security;
 
 revoke all on table public.site_admins from anon, authenticated;
+revoke all on table public.site_owners from anon, authenticated;
 revoke all on table public.disabled_users from anon, authenticated;
 grant all on table public.site_admins to service_role;
+grant all on table public.site_owners to service_role;
 grant all on table public.disabled_users to service_role;
 
 create or replace function public.is_active_user()
@@ -50,17 +59,32 @@ stable
 security definer
 set search_path = ''
 as $$
-  select auth.uid() is not null
-    and exists (
+  select auth.uid() is not null and (
+    exists (select 1 from public.site_owners as o where o.user_id = auth.uid())
+    or exists (
       select 1 from public.site_admins as a
       where a.user_id = auth.uid()
-    );
+    )
+  );
+$$;
+
+create or replace function public.is_site_owner()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select auth.uid() is not null
+    and exists (select 1 from public.site_owners as o where o.user_id = auth.uid());
 $$;
 
 revoke all on function public.is_active_user() from public;
 revoke all on function public.is_site_admin() from public;
+revoke all on function public.is_site_owner() from public;
 grant execute on function public.is_active_user() to authenticated;
 grant execute on function public.is_site_admin() to authenticated;
+grant execute on function public.is_site_owner() to authenticated;
 
 drop policy if exists "Students can read their own profile" on public.profiles;
 create policy "Active students can read their own profile"
@@ -154,3 +178,4 @@ $$;
 
 revoke all on function public.get_progress_board() from public;
 grant execute on function public.get_progress_board() to authenticated;
+
