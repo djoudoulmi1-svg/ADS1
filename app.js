@@ -21,6 +21,7 @@ let currentIsOwner = false;
 let adminChapters = [];
 let adminUsers = [];
 let adminNotice = "";
+let chapterPreviewUrl = null;
 const bundledChapters = [
   {
     id: "1",
@@ -231,6 +232,8 @@ function adminPanel() {
       <label>Description<textarea name="description" maxlength="1000" rows="3"></textarea></label>
       <label>Self-contained HTML lesson<input name="lesson" type="file" accept=".html,text/html" required></label>
       <p class="admin-help">Choose one HTML lesson file up to 5 MB. Keep its images and styles inside the file.</p>
+      <p class="admin-help" id="chapter-preview-status" aria-live="polite">Select a file to preview the rendered lesson before uploading it.</p>
+      <iframe class="chapter-upload-preview" id="chapter-upload-preview" title="Rendered chapter preview" sandbox="allow-scripts allow-forms" hidden></iframe>
       <button class="button" type="submit">Upload chapter</button>
     </form>
     <div class="admin-chapters-heading"><h3>Chapter visibility</h3></div>
@@ -250,8 +253,33 @@ function setAdminNotice(message, kind = "") {
   }
 }
 
+function clearChapterPreview() {
+  if (chapterPreviewUrl) URL.revokeObjectURL(chapterPreviewUrl);
+  chapterPreviewUrl = null;
+}
+
+function previewChapterFile(event) {
+  const file = event.currentTarget.files?.[0];
+  const preview = document.querySelector("#chapter-upload-preview");
+  const status = document.querySelector("#chapter-preview-status");
+  if (!preview || !status) return;
+  clearChapterPreview();
+  if (!file) {
+    preview.hidden = true;
+    preview.removeAttribute("src");
+    status.textContent = "Select a file to preview the rendered lesson before uploading it.";
+    return;
+  }
+  const html = new Blob([file], { type: "text/html;charset=utf-8" });
+  chapterPreviewUrl = URL.createObjectURL(html);
+  preview.src = chapterPreviewUrl;
+  preview.hidden = false;
+  status.textContent = `Previewing ${file.name}. Upload it to make this rendered lesson available to students.`;
+}
+
 function bindAdminForms() {
   document.querySelector("#chapter-upload-form")?.addEventListener("submit", uploadChapter);
+  document.querySelector("#chapter-upload-form [name=lesson]")?.addEventListener("change", previewChapterFile);
   document.querySelector("#refresh-admin-users")?.addEventListener("click", refreshAdminUsers);
   document.querySelector("#admin-users")?.addEventListener("click", handleAdminUserAction);
   document.querySelector("#admin-chapters")?.addEventListener("click", handleAdminChapterAction);
@@ -389,6 +417,7 @@ async function uploadChapter(event) {
     return;
   }
 
+  clearChapterPreview();
   adminNotice = `Chapter ${String(number).padStart(2, "0")} is now available.`;
   await loadChapterCatalog();
   render();
