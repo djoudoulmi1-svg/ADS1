@@ -199,7 +199,7 @@ function accountPage() {
 }
 
 function adminPanel() {
-  const chapterRows = chapters.filter(chapter => chapter.remote).map(chapter => `
+  const chapterRows = chapters.map(chapter => `
     <div class="admin-chapter-row">
       <div class="admin-user-identity"><strong>Chapter ${escapeHTML(chapter.number)} · ${escapeHTML(chapter.title)}</strong><span>${escapeHTML(chapter.description || "HTML lesson")}</span></div>
       <button class="button secondary admin-user-action admin-delete-chapter" type="button" data-chapter-id="${escapeHTML(chapter.id)}">Remove chapter</button>
@@ -232,8 +232,8 @@ function adminPanel() {
       <p class="admin-help">Choose one HTML lesson file up to 5 MB. Keep its images and styles inside the file.</p>
       <button class="button" type="submit">Upload chapter</button>
     </form>
-    <div class="admin-chapters-heading"><h3>Uploaded chapters</h3></div>
-    <div class="admin-chapters" id="admin-chapters">${chapterRows || `<p class="admin-help">No uploaded chapters yet.</p>`}</div>
+    <div class="admin-chapters-heading"><h3>Available chapters</h3></div>
+    <div class="admin-chapters" id="admin-chapters">${chapterRows || `<p class="admin-help">No available chapters.</p>`}</div>
     <p class="account-notice" id="admin-notice" aria-live="polite">${escapeHTML(adminNotice)}</p>
     <div class="admin-users-heading"><h3>Student accounts</h3><button class="button secondary" id="refresh-admin-users" type="button">Refresh list</button></div>
     <div class="admin-users" id="admin-users">${rows || `<p class="admin-help">No student accounts found.</p>`}</div>
@@ -259,9 +259,13 @@ function bindAdminForms() {
 async function handleAdminChapterAction(event) {
   const button = event.target.closest("button[data-chapter-id]");
   if (!button || !currentIsAdmin) return;
-  const chapter = chapters.find(item => item.remote && item.id === button.dataset.chapterId);
+  const chapter = chapters.find(item => item.id === button.dataset.chapterId);
   if (!chapter) return;
-  if (!window.confirm(`Remove Chapter ${chapter.number}: ${chapter.title} from the website? Its uploaded lesson file will also be deleted.`)) return;
+  const bundled = !chapter.remote;
+  const detail = bundled
+    ? " It will disappear for all visitors, but its original file will remain in the website repository."
+    : " Its uploaded lesson file will also be deleted.";
+  if (!window.confirm(`Remove Chapter ${chapter.number}: ${chapter.title} from the website?${detail}`)) return;
 
   button.disabled = true;
   setAdminNotice("Removing chapter…");
@@ -273,8 +277,9 @@ async function handleAdminChapterAction(event) {
     button.disabled = false;
     return;
   }
-  adminNotice = `Chapter ${chapter.number} was removed.`;
   await loadChapterCatalog();
+  adminNotice = `Chapter ${chapter.number} was removed.`;
+  render();
 }
 
 async function refreshAdminUsers() {
@@ -694,6 +699,12 @@ async function loadChapterCatalog() {
   }
 
   if (backendClient) {
+    const { data: removedRows, error: removedError } = await backendClient.from("removed_chapters")
+      .select("chapter_id");
+    const removedIds = !removedError && Array.isArray(removedRows)
+      ? new Set(removedRows.map(row => String(row.chapter_id)))
+      : new Set();
+    catalog = catalog.filter(chapter => !removedIds.has(String(chapter.id)));
     const { data, error } = await backendClient.from("chapter_catalog")
       .select("id, number, title, description, file_path, section_count")
       .eq("available", true)

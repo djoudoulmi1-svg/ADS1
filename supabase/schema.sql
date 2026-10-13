@@ -14,6 +14,19 @@ create table if not exists public.lesson_progress (
   primary key (user_id, chapter_id)
 );
 
+create table if not exists public.removed_chapters (
+  chapter_id text primary key check (chapter_id in ('1', '2')),
+  removed_by uuid not null references auth.users (id),
+  removed_at timestamptz not null default now()
+);
+
+alter table public.removed_chapters enable row level security;
+drop policy if exists "Anyone can see removed bundled chapters" on public.removed_chapters;
+create policy "Anyone can see removed bundled chapters"
+  on public.removed_chapters for select to anon, authenticated
+  using (true);
+grant select on public.removed_chapters to anon, authenticated;
+
 alter table public.profiles enable row level security;
 alter table public.lesson_progress enable row level security;
 
@@ -72,3 +85,4 @@ $$;
 
 revoke all on function public.get_progress_board() from public;
 grant execute on function public.get_progress_board() to authenticated;
+

@@ -80,8 +80,19 @@ Deno.serve(async request => {
 
   if (body.action === "delete-chapter") {
     const chapterId = String(body.chapterId || "");
+    if (chapterId === "1" || chapterId === "2") {
+      const { error } = await adminClient.from("removed_chapters").upsert(
+        { chapter_id: chapterId, removed_by: caller.id },
+        { onConflict: "chapter_id" }
+      );
+      if (error) {
+        console.error("Could not remove bundled chapter:", error.message);
+        return jsonResponse({ error: "Could not remove this chapter" }, 500);
+      }
+      return jsonResponse({ ok: true, chapterId });
+    }
     if (!/^extra-(?:[3-9]|[1-9][0-9])(?:-[a-f0-9]{20})?$/i.test(chapterId)) {
-      return jsonResponse({ error: "Only uploaded chapters can be removed here" }, 400);
+      return jsonResponse({ error: "This chapter cannot be removed here" }, 400);
     }
     const { data: chapter, error: chapterError } = await adminClient
       .from("chapter_catalog")
