@@ -121,7 +121,26 @@ function lessonPage(id) {
   const chapter = chapters.find(item => item.id === id && item.available);
   if (!chapter) return home();
   return `<div class="lesson-toolbar"><a class="button secondary" href="#chapter/${escapeHTML(chapter.id)}"><span aria-hidden="true">←</span> Back to chapter</a><div class="lesson-toolbar-title"><strong>${escapeHTML(chapter.title)}</strong><span>Chapter ${escapeHTML(chapter.number)} · University of Ouargla</span></div><button class="button secondary" id="mark-complete" data-chapter="${escapeHTML(chapter.id)}" type="button" ${isChapterComplete(chapter.id) ? "disabled" : ""}>${isChapterComplete(chapter.id) ? "Completed" : "Mark complete"}</button></div>
-  <iframe class="lesson-frame" src="${escapeHTML(chapter.file)}" title="Chapter ${escapeHTML(chapter.number)}: ${escapeHTML(chapter.title)} lesson" allow="fullscreen"${chapter.remote ? ' sandbox="allow-scripts allow-forms"' : ""}></iframe>`;
+  <iframe class="lesson-frame" ${chapter.remote ? `data-remote-src="${escapeHTML(chapter.file)}"` : `src="${escapeHTML(chapter.file)}"`} title="Chapter ${escapeHTML(chapter.number)}: ${escapeHTML(chapter.title)} lesson" allow="fullscreen"${chapter.remote ? ' sandbox="allow-scripts allow-forms"' : ""}></iframe>`;
+}
+
+// Supabase Storage serves uploaded .html files as text/plain, so loading the
+// public URL directly in an iframe shows the source code. Fetch the file as
+// text and render it with srcdoc so the browser treats it as a web page.
+async function loadRemoteLesson() {
+  const frame = document.querySelector("iframe.lesson-frame[data-remote-src]");
+  if (!frame) return;
+  const url = frame.dataset.remoteSrc;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Lesson request failed (${response.status})`);
+    const html = await response.text();
+    if (!frame.isConnected) return;
+    frame.srcdoc = html;
+  } catch (error) {
+    if (!frame.isConnected) return;
+    frame.srcdoc = `<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:2rem"><p>This lesson could not be loaded. Please refresh the page and try again.</p></body>`;
+  }
 }
 
 function isChapterComplete(chapterId) {
@@ -464,6 +483,7 @@ function render() {
   if (page === "account" && backendClient) bindAccountForms();
   if (page === "account" && currentIsAdmin) bindAdminForms();
   if (page === "home" || page === "chapters") document.querySelector("#chapter-search").addEventListener("input", filterChapters);
+  if (page === "lesson") loadRemoteLesson();
   if (page === "lesson") app.focus({ preventScroll: true });
 }
 
