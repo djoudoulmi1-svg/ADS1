@@ -211,6 +211,9 @@ h1, h2, h3 { font-family: "Manrope", sans-serif; }
 .admin-chapters-heading h3 { margin: 0; color: var(--navy); font: 700 16px "Manrope", sans-serif; }
 .admin-chapter-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
 .admin-chapter-visibility { color: var(--navy); }
+.admin-chapter-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.admin-chapter-delete { color: #b33c3c; border-color: #b33c3c; }
+.text-button { display: block; margin-top: 12px; padding: 0; background: none; border: 0; color: var(--navy); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 760px) {
   .admin-panel { padding: 17px; }

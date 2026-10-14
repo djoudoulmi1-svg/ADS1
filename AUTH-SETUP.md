@@ -48,6 +48,10 @@ Only `SHEET_SYNC_URL` is specific to the roster bridge. The Edge Function passes
 3. Confirm that the owner Sheet gets one roster row, the account progress is visible on **Account**, and **Show board** lists only display names and percentages.
 4. Mark a chapter complete from its lesson toolbar while signed in. The account's percentage should update and persist after signing out and back in.
 
+### Password reset
+
+The Sign in form has a **Forgot your password?** link that emails a reset link through Supabase Auth. For the link to open the site, add the published website address (for example `https://djoudoulmi1-svg.github.io/ADS1/`) under **Authentication → URL Configuration → Redirect URLs** in Supabase, and keep the **Reset Password** email template enabled. Students open the link on the device they use, choose a new password on the Account page, and stay signed in.
+
 If the Sheet is unavailable, sign-in and progress still work; the Account page reports that roster sync needs attention. The private Sheet belongs to the Google account used to create and deploy the Apps Script web app.
 
 For the optional administrator panel, follow [ADMIN-SETUP.md](ADMIN-SETUP.md) after both administrators have confirmed their accounts.

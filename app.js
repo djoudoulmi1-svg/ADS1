@@ -16,6 +16,7 @@ let currentProfile = null;
 let chapterProgress = new Set();
 let sharedProfiles = [];
 let accountNotice = "";
+let passwordRecoveryMode = false;
 let currentIsAdmin = false;
 let currentIsOwner = false;
 let adminChapters = [];
@@ -190,6 +191,21 @@ function accountPage() {
     </section>`;
   }
 
+  if (passwordRecoveryMode && currentSession) {
+    return `<section class="container account-shell fade-in">
+      <span class="eyebrow">Student account</span><h1>Choose a new password</h1>
+      <p class="account-intro">Enter a new password for your account. You will stay signed in after saving it.</p>
+      <div class="auth-grid">
+        <form id="recovery-form" class="auth-form"><h2>New password</h2>
+          <label for="recovery-password">New password</label><input id="recovery-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+          <label for="recovery-confirm">Confirm new password</label><input id="recovery-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" required>
+          <button class="button" type="submit">Save new password</button>
+        </form>
+      </div>
+      <p class="account-notice" id="account-notice" aria-live="polite">${escapeHTML(accountNotice)}</p>
+    </section>`;
+  }
+
   if (currentSession) {
     return `<section class="container account-shell fade-in">
       <span class="eyebrow">Student account</span><h1>Finishing account setup</h1>
@@ -212,6 +228,7 @@ function accountPage() {
         <label for="login-email">Email</label><input id="login-email" name="email" type="email" autocomplete="email" required>
         <label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required>
         <button class="button secondary" type="submit">Sign in</button>
+        <button class="text-button" id="forgot-password" type="button">Forgot your password?</button>
       </form>
     </div>
     <p class="account-notice" id="account-notice" aria-live="polite">${escapeHTML(accountNotice)}</p>
@@ -223,7 +240,10 @@ function adminPanel() {
   const chapterRows = adminChapters.map(chapter => `
     <div class="admin-chapter-row">
       <div class="admin-user-identity"><strong>Chapter ${escapeHTML(chapter.number)} · ${escapeHTML(chapter.title)}</strong><span>${escapeHTML(chapter.available ? "Visible to students" : "Hidden from students")}</span></div>
-      <button class="button secondary admin-user-action admin-chapter-visibility" type="button" data-chapter-id="${escapeHTML(chapter.id)}" data-visible="${chapter.available}">${chapter.available ? "Hide chapter" : "Show chapter"}</button>
+      <div class="admin-chapter-actions">
+        <button class="button secondary admin-user-action admin-chapter-visibility" type="button" data-chapter-id="${escapeHTML(chapter.id)}" data-visible="${chapter.available}">${chapter.available ? "Hide chapter" : "Show chapter"}</button>
+        ${chapter.remote ? `<button class="button secondary admin-user-action admin-chapter-delete" type="button" data-delete-chapter-id="${escapeHTML(chapter.id)}">Delete chapter</button>` : ""}
+      </div>
     </div>`).join("");
   const rows = adminUsers.map(user => {
     const protectedUser = user.owner || user.administrator || user.userId === currentSession?.user?.id;
@@ -304,7 +324,32 @@ function bindAdminForms() {
   document.querySelector("#admin-chapters")?.addEventListener("click", handleAdminChapterAction);
 }
 
+async function deleteAdminChapter(button) {
+  const chapter = adminChapters.find(item => item.id === button.dataset.deleteChapterId);
+  if (!chapter || !chapter.remote) return;
+  if (!window.confirm(`Permanently delete Chapter ${chapter.number} · ${chapter.title}? This removes the uploaded lesson and cannot be undone. Use "Hide chapter" if you only want to hide it from students.`)) return;
+
+  button.disabled = true;
+  setAdminNotice("Deleting chapter…");
+  const { data, error } = await backendClient.functions.invoke("admin-tools", {
+    body: { action: "delete-chapter", chapterId: chapter.id }
+  });
+  if (error || !data?.ok) {
+    setAdminNotice(data?.error || error?.message || "Could not delete this chapter.", "error");
+    button.disabled = false;
+    return;
+  }
+  await loadChapterCatalog();
+  adminNotice = `Chapter ${chapter.number} was deleted.`;
+  render();
+}
+
 async function handleAdminChapterAction(event) {
+  const deleteButton = event.target.closest("button[data-delete-chapter-id]");
+  if (deleteButton) {
+    if (currentIsAdmin) await deleteAdminChapter(deleteButton);
+    return;
+  }
   const button = event.target.closest("button[data-chapter-id]");
   if (!button || !currentIsAdmin) return;
   const chapter = adminChapters.find(item => item.id === button.dataset.chapterId);
@@ -514,6 +559,8 @@ function setAccountNotice(message, kind = "") {
 function bindAccountForms() {
   document.querySelector("#signup-form")?.addEventListener("submit", signUp);
   document.querySelector("#login-form")?.addEventListener("submit", signIn);
+  document.querySelector("#forgot-password")?.addEventListener("click", requestPasswordReset);
+  document.querySelector("#recovery-form")?.addEventListener("submit", saveNewPassword);
   document.querySelector("#display-name-form")?.addEventListener("submit", updateDisplayName);
   document.querySelector("#sign-out")?.addEventListener("click", signOut);
   document.querySelector("#load-leaderboard")?.addEventListener("click", loadLeaderboard);
@@ -564,6 +611,43 @@ async function signIn(event) {
   await loadAdminState();
   await loadChapterCatalog();
   await syncRoster();
+  render();
+}
+
+async function requestPasswordReset() {
+  const email = String(document.querySelector("#login-email")?.value || "").trim().toLowerCase();
+  if (!email) {
+    setAccountNotice("Enter your email in the Sign in form, then select “Forgot your password?”.", "error");
+    document.querySelector("#login-email")?.focus();
+    return;
+  }
+  setAccountNotice("Sending the reset link…");
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const { error } = await backendClient.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) {
+    setAccountNotice(error.message, "error");
+    return;
+  }
+  // The same message is shown whether or not the email has an account.
+  setAccountNotice("If an account exists for that email, a password reset link has been sent. Open it on this device and choose a new password.", "success");
+}
+
+async function saveNewPassword(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const password = String(form.get("password"));
+  if (password !== String(form.get("confirm"))) {
+    setAccountNotice("The two passwords do not match.", "error");
+    return;
+  }
+  setAccountNotice("Saving your new password…");
+  const { error } = await backendClient.auth.updateUser({ password });
+  if (error) {
+    setAccountNotice(error.message, "error");
+    return;
+  }
+  passwordRecoveryMode = false;
+  accountNotice = "Your password was updated. You are signed in.";
   render();
 }
 
@@ -684,7 +768,14 @@ async function initializeAccounts() {
     await loadAdminState();
     await loadChapterCatalog();
   }
-  backendClient.auth.onAuthStateChange((_event, session) => {
+  backendClient.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") {
+      passwordRecoveryMode = true;
+      accountNotice = "";
+      if (window.location.hash !== "#account") window.location.hash = "#account";
+    } else if (event === "SIGNED_OUT") {
+      passwordRecoveryMode = false;
+    }
     window.setTimeout(async () => {
       currentSession = session;
       if (session?.user) {
