@@ -57,6 +57,9 @@ as $$
     ), 0)
   from public.profiles as p
   join auth.users as u on u.id = p.user_id
+  where not exists (
+    select 1 from public.disabled_users as d where d.user_id = p.user_id
+  )
   order by p.progress_percent desc, 4 desc, p.display_name asc
   limit 100;
 $$;
