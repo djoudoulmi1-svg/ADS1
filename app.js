@@ -17,6 +17,7 @@ let chapterProgress = new Set();
 let sharedProfiles = [];
 let accountNotice = "";
 let passwordRecoveryMode = false;
+let emailFeature = true; // false until the owner applies the email-visibility database update
 let currentIsAdmin = false;
 let currentIsOwner = false;
 let adminChapters = [];
@@ -81,12 +82,20 @@ function escapeHTML(value) {
 }
 
 function home() {
-  return `<section class="hero"><div class="container hero-content fade-in">
-    <span class="eyebrow">ADS1 · University of Ouargla</span>
-    <h1>Learn algorithms.<br><em>One step at a time.</em></h1>
-    <p>Study your ADS1 lessons, explore worked examples, practise algorithm tracing, and test your understanding through interactive activities.</p>
-    <a class="button" href="#chapters">Explore chapters <span class="arrow" aria-hidden="true">→</span></a>
+  const arenaUI = window.ADS1ArenaUI;
+  return `<section class="hero"><div class="container hero-grid fade-in">
+    <div class="hero-content">
+      <span class="eyebrow">ADS1 · University of Ouargla</span>
+      <h1>Learn algorithms.<br><em>One step at a time.</em></h1>
+      <p>Study your ADS1 lessons, explore worked examples, practise algorithm tracing, and test your understanding through interactive activities.</p>
+      <div class="hero-actions">
+        <a class="button" href="#chapters">Explore chapters <span class="arrow" aria-hidden="true">→</span></a>
+        ${arenaUI ? `<a class="button secondary" href="#arena">Enter the Arena <span class="arrow" aria-hidden="true">→</span></a>` : ""}
+      </div>
+    </div>
+    ${arenaUI ? arenaUI.heroDemo() : ""}
   </div></section>
+  ${arenaUI ? arenaUI.homeStrip() : ""}
   <section class="container overview" aria-label="Course information">
     <div class="section-heading"><span class="eyebrow">Your course</span><h2>Built around the material</h2></div>
     <div class="facts">
@@ -154,6 +163,31 @@ function completedAvailableChapterCount() {
   return chapters.filter(chapter => chapter.available && chapterProgress.has(String(chapter.id))).length;
 }
 
+// Course progress = lessons (70%) + Algo Arena levels (30%).
+function computeProgressPercent() {
+  const arenaUI = window.ADS1ArenaUI;
+  const arenaWeight = arenaUI ? arenaUI.WEIGHT_PERCENT : 0;
+  const total = chapters.filter(chapter => chapter.available).length;
+  const lessons = total ? completedAvailableChapterCount() / total : 0;
+  const arena = arenaUI ? arenaUI.completedCount() / arenaUI.levelCount : 0;
+  return Math.round((100 - arenaWeight) * lessons + arenaWeight * arena);
+}
+
+// Recomputes the percentage after an Arena level or lesson changes and stores it.
+async function syncProgressPercent() {
+  if (!backendClient || !currentSession || !currentProfile) return;
+  const percent = computeProgressPercent();
+  if (Number(currentProfile.progress_percent) === percent) return;
+  const { error } = await backendClient.from("profiles")
+    .update({ progress_percent: percent })
+    .eq("user_id", currentSession.user.id);
+  if (!error) currentProfile.progress_percent = percent;
+}
+
+function profileColumns() {
+  return emailFeature ? "display_name, progress_percent, show_email" : "display_name, progress_percent";
+}
+
 function accountPage() {
   if (!backendClient) {
     return `<section class="container account-shell fade-in">
@@ -167,11 +201,12 @@ function accountPage() {
   if (currentSession && currentProfile) {
     const total = chapters.filter(chapter => chapter.available).length;
     const percent = Number(currentProfile.progress_percent) || 0;
+    const arenaSummary = window.ADS1ArenaUI ? window.ADS1ArenaUI.summaryHTML() : "";
     const lessonRows = chapters.filter(chapter => chapter.available).map(chapter => {
       const completed = chapterProgress.has(String(chapter.id));
       return `<div class="account-lesson"><span>${escapeHTML(chapter.title)}</span><strong class="${completed ? "lesson-done" : "lesson-pending"}">${completed ? "Completed" : "Not completed"}</strong></div>`;
     }).join("");
-    const leaderboardRows = sharedProfiles.map((profile, index) => `<li><span class="leader-rank">${String(index + 1).padStart(2, "0")}</span><span class="leader-name">${escapeHTML(profile.display_name)}</span><strong>${Math.round(Number(profile.progress_percent) || 0)}%</strong></li>`).join("");
+    const leaderboardRows = sharedProfiles.map((profile, index) => `<li><span class="leader-rank">${String(index + 1).padStart(2, "0")}</span><span class="leader-name">${escapeHTML(profile.display_name)}${profile.email ? `<small class="leader-email">${escapeHTML(profile.email)}</small>` : ""}</span><span class="leader-xp">${Number(profile.arena_points) ? `${Number(profile.arena_points)} XP` : ""}</span><strong>${Math.round(Number(profile.progress_percent) || 0)}%</strong></li>`).join("");
     return `<section class="container account-shell fade-in">
       <span class="eyebrow">Student account</span><h1>Your learning progress</h1>
       <div class="account-welcome"><div><span>Signed in as</span><strong>${escapeHTML(currentProfile.display_name)}</strong></div><button class="button secondary" id="sign-out" type="button">Sign out</button></div>
@@ -179,12 +214,14 @@ function accountPage() {
         <div class="progress-heading"><div><span class="eyebrow">Course progress</span><h2 id="progress-heading">${percent}% complete</h2></div><span class="progress-count">${completedAvailableChapterCount()} of ${total} chapters</span></div>
         <progress class="course-progress" value="${percent}" max="100" aria-label="Course completion ${percent} percent"></progress>
         <div class="account-lesson-list">${lessonRows}</div>
+        ${arenaSummary}
       </section>
       <section class="leaderboard-panel" aria-labelledby="leaderboard-heading">
         <div class="leaderboard-heading"><div><span class="eyebrow">Shared with signed-in students</span><h2 id="leaderboard-heading">Course progress board</h2></div><button class="button secondary" id="load-leaderboard" type="button">${sharedProfiles.length ? "Refresh" : "Show board"}</button></div>
-        <p>Only display names and completion percentages appear here. Email addresses and detailed lesson records are private.</p>
+        <p>Display names, Arena XP and completion percentages appear here. Detailed lesson records are private, and an email address appears only if its owner chooses to show it.</p>
         ${sharedProfiles.length ? `<ol class="leaderboard-list">${leaderboardRows}</ol>` : `<div class="leaderboard-empty">Select “Show board” to view student progress.</div>`}
       </section>
+      ${emailFeature ? `<form id="email-privacy-form" class="privacy-form"><label class="switch"><input type="checkbox" id="show-email" ${currentProfile.show_email ? "checked" : ""}><span class="switch-track" aria-hidden="true"></span><span class="switch-text"><strong>Show my email on the progress board</strong><small>${currentProfile.show_email ? "Other signed-in students can see your email address." : "Your email is hidden. Only your display name is shown."}</small></span></label></form>` : `<p class="privacy-form unavailable">Choosing whether to show your email needs a database update by the site owner, so it is not available yet. Your email stays hidden.</p>`}
       <form id="display-name-form" class="account-name-form"><label for="display-name">Display name</label><div><input id="display-name" name="displayName" maxlength="40" minlength="2" value="${escapeHTML(currentProfile.display_name)}" required><button class="button secondary" type="submit">Update name</button></div></form>
       <p class="account-notice" id="account-notice" aria-live="polite">${escapeHTML(accountNotice)}</p>
       ${currentIsAdmin ? adminPanel() : ""}
@@ -519,15 +556,18 @@ function aboutPage() {
 
 function render() {
   const { page, query } = route();
-  const view = page === "chapters" ? home() : page === "chapter" ? chapterPage(query) : page === "lesson" ? lessonPage(query) : page === "account" ? accountPage() : page === "about" ? aboutPage() : home();
+  const arenaUI = window.ADS1ArenaUI;
+  const view = page === "chapters" ? home() : page === "chapter" ? chapterPage(query) : page === "lesson" ? lessonPage(query) : page === "account" ? accountPage() : page === "about" ? aboutPage() : page === "arena" && arenaUI ? arenaUI.view() : home();
   app.innerHTML = view;
   document.querySelectorAll("[data-nav]").forEach(link => link.classList.toggle("active", link.dataset.nav === page || (page === "chapter" && link.dataset.nav === "chapters")));
+  if (page === "arena" && arenaUI) arenaUI.bind();
   nav.classList.remove("open");
   menuToggle.setAttribute("aria-expanded", "false");
   if (page === "lesson") document.querySelector("#mark-complete").addEventListener("click", markComplete);
   if (page === "account" && backendClient) bindAccountForms();
   if (page === "account" && currentIsAdmin) bindAdminForms();
   if (page === "home" || page === "chapters") document.querySelector("#chapter-search").addEventListener("input", filterChapters);
+  if ((page === "home" || page === "chapters") && arenaUI) arenaUI.bindHome();
   if (page === "lesson") loadRemoteLesson();
   if (page === "lesson") app.focus({ preventScroll: true });
 }
@@ -562,6 +602,7 @@ function bindAccountForms() {
   document.querySelector("#forgot-password")?.addEventListener("click", requestPasswordReset);
   document.querySelector("#recovery-form")?.addEventListener("submit", saveNewPassword);
   document.querySelector("#display-name-form")?.addEventListener("submit", updateDisplayName);
+  document.querySelector("#show-email")?.addEventListener("change", updateEmailVisibility);
   document.querySelector("#sign-out")?.addEventListener("click", signOut);
   document.querySelector("#load-leaderboard")?.addEventListener("click", loadLeaderboard);
 }
@@ -669,11 +710,20 @@ async function signOut() {
 }
 
 async function loadAccountData(user) {
-  const { data: existingProfile, error: profileError } = await backendClient
+  let { data: existingProfile, error: profileError } = await backendClient
     .from("profiles")
-    .select("display_name, progress_percent")
+    .select(profileColumns())
     .eq("user_id", user.id)
     .maybeSingle();
+  if (profileError && emailFeature && /show_email/i.test(`${profileError.message} ${profileError.details || ""}`)) {
+    // The email-visibility column has not been added to the database yet.
+    emailFeature = false;
+    ({ data: existingProfile, error: profileError } = await backendClient
+      .from("profiles")
+      .select(profileColumns())
+      .eq("user_id", user.id)
+      .maybeSingle());
+  }
   if (profileError) {
     accountNotice = "Profile setup failed. The site owner may need to run the account database setup.";
     return;
@@ -687,7 +737,7 @@ async function loadAccountData(user) {
       display_name: displayName,
       progress_percent: existingProfile?.progress_percent || 0
     }, { onConflict: "user_id" })
-    .select("display_name, progress_percent")
+    .select(profileColumns())
     .single();
   if (saveProfileError) {
     accountNotice = "Profile setup failed. The site owner may need to run the account database setup.";
@@ -704,8 +754,8 @@ async function loadAccountData(user) {
   }
 
   chapterProgress = new Set(rows.filter(row => row.completed).map(row => String(row.chapter_id)));
-  const total = chapters.filter(chapter => chapter.available).length;
-  const percent = total ? Math.round(completedAvailableChapterCount() / total * 100) : 0;
+  if (window.ADS1ArenaUI) await window.ADS1ArenaUI.load();
+  const percent = computeProgressPercent();
   currentProfile = { ...profile, progress_percent: percent };
   if (Number(profile.progress_percent) !== percent) {
     const { error: percentError } = await backendClient
@@ -733,7 +783,7 @@ async function updateDisplayName(event) {
     .from("profiles")
     .update({ display_name: displayName })
     .eq("user_id", currentSession.user.id)
-    .select("display_name, progress_percent")
+    .select(profileColumns())
     .single();
   if (error) {
     setAccountNotice(error.message, "error");
@@ -744,10 +794,36 @@ async function updateDisplayName(event) {
   render();
 }
 
+async function updateEmailVisibility(event) {
+  const checkbox = event.currentTarget;
+  const show = checkbox.checked;
+  checkbox.disabled = true;
+  const { data, error } = await backendClient
+    .from("profiles")
+    .update({ show_email: show })
+    .eq("user_id", currentSession.user.id)
+    .select(profileColumns())
+    .single();
+  if (error) {
+    checkbox.checked = !show;
+    checkbox.disabled = false;
+    setAccountNotice("Could not change your email visibility. Please try again.", "error");
+    return;
+  }
+  currentProfile = data;
+  sharedProfiles = [];
+  accountNotice = show ? "Your email is now visible on the progress board." : "Your email is now hidden.";
+  render();
+}
+
 async function loadLeaderboard() {
   const button = document.querySelector("#load-leaderboard");
   if (button) button.disabled = true;
-  const { data, error } = await backendClient.rpc("get_progress_board");
+  let { data, error } = await backendClient.rpc("get_progress_board_v2");
+  if (error) {
+    // The newer board (with XP and optional emails) is not installed yet: use the original one.
+    ({ data, error } = await backendClient.rpc("get_progress_board"));
+  }
   if (error) {
     setAccountNotice("Could not load the shared progress board.", "error");
     if (button) button.disabled = false;
@@ -790,6 +866,7 @@ async function initializeAccounts() {
         adminUsers = [];
         chapterProgress.clear();
         sharedProfiles = [];
+        if (window.ADS1ArenaUI) await window.ADS1ArenaUI.load();
         await loadChapterCatalog();
       }
       updateAssistantStatus();
@@ -815,8 +892,7 @@ async function markComplete(event) {
       return;
     }
     chapterProgress.add(chapterId);
-    const total = chapters.filter(chapter => chapter.available).length;
-    const percent = total ? Math.round(completedAvailableChapterCount() / total * 100) : 0;
+    const percent = computeProgressPercent();
     const { error: percentError } = await backendClient.from("profiles")
       .update({ progress_percent: percent })
       .eq("user_id", currentSession.user.id);
@@ -885,6 +961,7 @@ menuToggle.addEventListener("click", () => {
 });
 
 async function startApplication() {
+  if (window.ADS1ArenaUI) await window.ADS1ArenaUI.load();
   await loadChapterCatalog();
   await initializeAccounts();
   render();
