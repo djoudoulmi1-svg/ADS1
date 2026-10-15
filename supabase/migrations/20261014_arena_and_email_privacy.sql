@@ -62,4 +62,6 @@ as $$
 $$;
 
 revoke all on function public.get_progress_board_v2() from public;
+-- Supabase grants EXECUTE to anon by default; opted-in emails must never be readable signed out.
+revoke execute on function public.get_progress_board_v2() from anon;
 grant execute on function public.get_progress_board_v2() to authenticated;
