@@ -168,6 +168,9 @@
       const decls = [];
       do {
         const nameTok = this.next();
+        if (nameTok.v === "*") {
+          throw new CError("Pointers are not supported in this editor. Use plain variables for now.", nameTok.line);
+        }
         if (nameTok.t !== "id" || TYPE_WORDS.has(nameTok.v) || RESERVED.has(nameTok.v)) {
           throw new CError(`Expected a variable name but found '${nameTok.v}'`, nameTok.line);
         }
@@ -400,7 +403,19 @@
   function formatNumberC(x, digits) {
     if (Number.isNaN(x)) return "nan";
     if (!Number.isFinite(x)) return x < 0 ? "-inf" : "inf";
-    return x.toFixed(digits);
+    const d = Math.min(Math.max(digits, 0), 40);
+    // C rounds an exact tie (such as 2.5 or 0.125) to the even digit, while
+    // JavaScript's toFixed rounds it up. Detect exact ties using the exact
+    // decimal expansion of the double and apply the C rule.
+    const exact = Math.abs(x).toFixed(Math.min(100, d + 60));
+    const dot = exact.indexOf(".");
+    const tail = exact.slice(dot + 1 + d);
+    if (/^50*$/.test(tail)) {
+      const kept = exact.slice(0, dot + 1 + d).replace(/\.$/, "");
+      const lastDigit = Number(kept.replace(".", "").slice(-1));
+      if (lastDigit % 2 === 0) return (x < 0 ? "-" : "") + kept;
+    }
+    return x.toFixed(d);
   }
 
   function formatPrintf(fmt, args, line) {
