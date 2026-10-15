@@ -84,16 +84,62 @@
   const levelStatus = (trackId, n) => (levelRecord(trackId, n)?.done ? "done" : isUnlocked(trackId, n) ? "open" : "locked");
 
   async function finishLevel(trackId, n, score, passed) {
-    const before = A.rankFor(totalXP());
+    const xpBefore = totalXP();
+    const before = A.rankFor(xpBefore);
     const { justCompleted } = await save(A.levelId(trackId, n), score, passed);
-    const after = A.rankFor(totalXP());
-    return { justCompleted, rankUp: after.index > before.index ? after.name : null };
+    const xpAfter = totalXP();
+    const after = A.rankFor(xpAfter);
+    return { justCompleted, rankUp: after.index > before.index ? after.name : null, xpBefore, xpAfter };
   }
+
+  /* ------------------------------ rank emblems and celebration ------------------------------ */
+  const RANK_TIERS = ["#64748b", "#b45309", "#0f766e", "#1d4ed8", "#7e22ce", "#b7791f"];
+
+  /** A hexagon badge: its colour and the number of dots under the star grow with the rank. */
+  function rankEmblem(index, size = 56) {
+    const color = RANK_TIERS[Math.min(index, RANK_TIERS.length - 1)];
+    const pips = Array.from({ length: index + 1 }, (_, i) => `<circle cx="${(32 + (i - index / 2) * 6).toFixed(1)}" cy="50" r="2" fill="#fff"/>`).join("");
+    return `<svg class="emblem" viewBox="0 0 64 64" width="${size}" height="${size}" aria-hidden="true" focusable="false"><polygon points="32,3 58,17.5 58,46.5 32,61 6,46.5 6,17.5" fill="${color}"/><polygon points="32,9 53,21 53,43 32,55 11,43 11,21" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.5"/><polygon points="32,15 35.5,25 46,25 37.5,31.5 40.7,41.5 32,35.5 23.3,41.5 26.5,31.5 18,25 28.5,25" fill="#fff"/>${pips}</svg>`;
+  }
+
+  /** Falling confetti made only of CSS: the pieces are fixed, so no randomness is needed. */
+  function confettiHTML() {
+    const colors = ["var(--accent, #13805f)", "#f5b82e", "#20b8e6", "#e5484d", "#13805f"];
+    const pieces = Array.from({ length: 22 }, (_, i) => {
+      const x = 6 + (i * 37) % 88;
+      const drift = ((i * 53) % 41) - 20;
+      const delay = ((i % 7) * 0.06).toFixed(2);
+      const spin = 120 + (i * 47) % 300;
+      const size = 6 + (i % 3) * 2;
+      return `<i style="--x:${x}%;--dx:${drift}px;--delay:${delay}s;--rot:${spin}deg;--s:${size}px;--c:${colors[i % colors.length]}"></i>`;
+    }).join("");
+    return `<span class="confetti" aria-hidden="true">${pieces}</span>`;
+  }
+
+  const rankPercent = (xp, rank) => (rank.next ? Math.round((xp - A.RANKS[rank.index].xp) / (rank.next.xp - A.RANKS[rank.index].xp) * 100) : 100);
 
   function bannerHTML(trackId, n, passed, info, failText) {
     if (!passed) return `<div class="result-banner fail" role="status"><strong>Not cleared yet.</strong> ${esc(failText)}</div>`;
     const hasNext = Boolean(A.TRACKS[trackId].levels[n]);
-    return `<div class="result-banner win" role="status"><strong>Level cleared!</strong> ${info.justCompleted ? `+${A.LEVEL_XP} XP.` : "You had already cleared this level."}${info.rankUp ? ` New rank: <strong>${esc(info.rankUp)}</strong>.` : ""} ${hasNext ? `<a href="#arena/${trackId}/${n + 1}">Next level <span aria-hidden="true">→</span></a>` : `<a href="#arena/${trackId}">Back to the track <span aria-hidden="true">→</span></a>`}</div>`;
+    const link = hasNext ? `<a href="#arena/${trackId}/${n + 1}">Next level <span aria-hidden="true">→</span></a>` : `<a href="#arena/${trackId}">Back to the track <span aria-hidden="true">→</span></a>`;
+    if (!info.justCompleted) return `<div class="result-banner win" role="status"><strong>Level cleared!</strong> You had already cleared this level. ${link}</div>`;
+
+    const before = A.rankFor(info.xpBefore);
+    const after = A.rankFor(info.xpAfter);
+    const from = rankPercent(info.xpBefore, before);
+    const to = info.rankUp ? 100 : rankPercent(info.xpAfter, after);
+    const progressText = after.next ? `${info.xpAfter} XP · ${after.toNext} XP to ${after.next.name}` : `${info.xpAfter} XP · top rank reached`;
+    const label = info.rankUp ? `Rank ${before.name} completed` : progressText;
+    const rankUp = info.rankUp
+      ? `<div class="rank-up">${rankEmblem(after.index, 64)}<div><small>New rank</small><strong>${esc(info.rankUp)}</strong><small>${esc(progressText)}</small></div></div>`
+      : "";
+    return `<div class="result-banner win celebrate" role="status">${confettiHTML()}
+      <div class="win-head"><strong>Level cleared!</strong><span class="xp-gain">+${A.LEVEL_XP} XP</span></div>
+      <div class="xp-meter" role="img" aria-label="${esc(label)}" style="--from:${from}%;--to:${to}%"><span class="xp-fill"></span></div>
+      <small class="xp-caption">${esc(label)}</small>
+      ${rankUp}
+      <div class="win-next">${link}</div>
+    </div>`;
   }
 
   /* ------------------------------ routing ------------------------------ */
@@ -137,14 +183,14 @@
     const low = A.RANKS[rank.index].xp;
     const percent = rank.next ? Math.round((xp - low) / (rank.next.xp - low) * 100) : 100;
     return `<section class="rank-panel" aria-label="Your rank">
-      <div class="rank-badge" aria-hidden="true">${rank.index + 1}</div>
+      <div class="rank-badge" aria-hidden="true">${rankEmblem(rank.index, 56)}</div>
       <div class="rank-info"><span>Your rank</span><strong>${esc(rank.name)}</strong><small>${xp} XP · ${completedCount()} of ${A.LEVEL_COUNT} levels cleared</small></div>
       <div class="rank-next"><progress value="${percent}" max="100" aria-label="Progress to the next rank"></progress><small>${rank.next ? `${rank.toNext} XP to ${esc(rank.next.name)}` : "You reached the top rank"}</small></div>
     </section>`;
   }
 
   function pills(trackId) {
-    return `<ol class="level-pills" aria-label="Levels">${A.TRACKS[trackId].levels.map(level => {
+    return `<ol class="level-pills" data-track="${trackId}" aria-label="Levels">${A.TRACKS[trackId].levels.map(level => {
       const status = levelStatus(trackId, level.n);
       const word = status === "done" ? "cleared" : status === "open" ? "open" : "locked";
       return `<li class="pill ${status}" title="Level ${level.n}: ${esc(level.name)}"><span class="sr-only">Level ${level.n}, ${word}</span><span aria-hidden="true">${level.n}</span></li>`;
@@ -154,7 +200,7 @@
   function trackCard(trackId) {
     const track = A.TRACKS[trackId];
     const cleared = track.levels.filter(level => levelStatus(trackId, level.n) === "done").length;
-    return `<article class="track-card">
+    return `<article class="track-card" data-track="${trackId}">
       <div class="track-icon" aria-hidden="true">${esc(track.icon)}</div>
       <h3>${esc(track.name)}</h3><p class="track-tagline">${esc(track.tagline)}</p><p>${esc(track.blurb)}</p>
       ${pills(trackId)}
@@ -189,7 +235,7 @@
         : `<a class="button${status === "done" ? " secondary" : ""}" href="#arena/${track.id}/${level.n}">${status === "done" ? "Replay" : "Start"} <span class="arrow" aria-hidden="true">→</span></a>`;
       return `<div class="level-row ${status}"><span class="lesson-index">${level.n}</span><div><h2>${esc(level.name)}</h2><p>${esc(level.desc)}</p></div><span class="level-status ${status}">${label}</span>${action}</div>`;
     }).join("");
-    return `<section class="container arena-shell fade-in">
+    return `<section class="container arena-shell fade-in" data-track="${track.id}">
       ${crumbs([{ label: "Home", href: "#home" }, { label: "Arena", href: "#arena" }, { label: esc(track.name) }])}
       <span class="eyebrow">${esc(track.tagline)}</span><h1>${esc(track.name)}</h1>
       <p class="arena-intro">${esc(track.blurb)}</p>
@@ -285,7 +331,7 @@
   function tracePage(n) {
     ensureTrace(n);
     const track = A.TRACKS.trace;
-    return `<section class="container arena-shell fade-in">
+    return `<section class="container arena-shell fade-in" data-track="trace">
       ${levelHeader(track, track.levels[n - 1])}
       <section class="arena-panel" aria-labelledby="trace-explore"><h2 id="trace-explore"><span class="step-no">1</span>Explore</h2>
         <p class="panel-note">Press Step to run one line at a time and watch the variables change. A variable shows “—” until it receives a value.</p>
@@ -388,7 +434,7 @@
   function examPage(n) {
     if (!exam || exam.n !== n) exam = { n, questions: null, answers: [], result: null, info: null };
     const track = A.TRACKS.exam;
-    return `<section class="container arena-shell fade-in">
+    return `<section class="container arena-shell fade-in" data-track="exam">
       ${levelHeader(track, track.levels[n - 1])}
       <section class="arena-panel" aria-label="Exam attempt"><div id="exam-body">${examBodyHTML()}</div></section>
     </section>`;
@@ -470,7 +516,7 @@
     const code = clab.drafts[n] ?? readDraft(n) ?? level.starter;
     clab.drafts[n] = code;
     const first = level.tests[0];
-    return `<section class="container arena-shell fade-in">
+    return `<section class="container arena-shell fade-in" data-track="clab">
       ${levelHeader(track, track.levels[n - 1])}
       <section class="arena-panel" aria-labelledby="clab-task"><h2 id="clab-task"><span class="step-no">1</span>Your task</h2>
         <p>${esc(level.statement)}</p>
@@ -616,7 +662,7 @@
     const rank = A.rankFor(totalXP());
     const cards = A.TRACK_ORDER.map(id => {
       const track = A.TRACKS[id];
-      return `<a class="mini-track" href="#arena/${id}"><span class="track-icon" aria-hidden="true">${esc(track.icon)}</span><span><strong>${esc(track.name)}</strong><small>${esc(track.tagline)}</small></span>${pills(id)}</a>`;
+      return `<a class="mini-track" data-track="${id}" href="#arena/${id}"><span class="track-icon" aria-hidden="true">${esc(track.icon)}</span><span><strong>${esc(track.name)}</strong><small>${esc(track.tagline)}</small></span>${pills(id)}</a>`;
     }).join("");
     return `<section class="container arena-strip" aria-label="Practice">
       <div class="strip-main">
