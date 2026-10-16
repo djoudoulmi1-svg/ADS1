@@ -136,7 +136,7 @@ function applySameOriginLessonTheme(doc, theme) {
       });
     }
     const color = doc.defaultView.getComputedStyle(el).backgroundColor;
-    const channels = color.match(/[\\d.]+/g)?.map(Number);
+    const channels = color.match(/[\d.]+/g)?.map(Number);
     if (!channels || channels.length < 3 || (channels.length > 3 && channels[3] <= 0.35)) continue;
     const luminance = (0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]) / 255;
     if (luminance > 0.72) {
