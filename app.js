@@ -152,7 +152,7 @@ function syncLessonFrameTheme(frame) {
   if (!frame?.contentWindow) return;
   const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
   try {
-    if (applySameOriginLessonTheme(frame.contentDocument, theme)) return;
+    applySameOriginLessonTheme(frame.contentDocument, theme);
   } catch {}
   frame.contentWindow.postMessage({ type: "ADS1_THEME", theme }, "*");
 }
