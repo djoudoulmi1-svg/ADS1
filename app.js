@@ -87,73 +87,34 @@ function withLessonThemeBridge(html) {
   return bridge + source;
 }
 
-const lessonFrameOriginalStyles = new WeakMap();
-const lessonFrameObservers = new WeakMap();
-const lessonFrameStyleProperties = ["background-color", "color", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color"];
-
 function applySameOriginLessonTheme(doc, theme) {
-  const dark = theme === "dark";
-  const root = doc.documentElement;
-  if (!root) return false;
-  root.style.colorScheme = dark ? "dark" : "light";
-  const nodes = [root, ...(doc.body ? [doc.body, ...doc.body.querySelectorAll("*")] : [])];
-  function remember(el) {
-    if (lessonFrameOriginalStyles.has(el)) return;
-    const values = {};
-    for (const property of lessonFrameStyleProperties) values[property] = [el.style.getPropertyValue(property), el.style.getPropertyPriority(property)];
-    lessonFrameOriginalStyles.set(el, values);
+  if (!doc?.documentElement || !doc.head || !doc.body) return false;
+  const existing = doc.getElementById("ads1-parent-theme");
+  if (theme !== "dark") {
+    existing?.remove();
+    doc.documentElement.style.removeProperty("color-scheme");
+    return true;
   }
-  function restore(el) {
-    const values = lessonFrameOriginalStyles.get(el);
-    if (!values) return;
-    for (const property of lessonFrameStyleProperties) {
-      const [value, priority] = values[property];
-      if (value) el.style.setProperty(property, value, priority);
-      else el.style.removeProperty(property);
+  const style = existing || doc.createElement("style");
+  style.id = "ads1-parent-theme";
+  style.textContent = `
+    :root { color-scheme: dark !important; }
+    html, body { background: #091321 !important; color: #e7effb !important; }
+    body * { color: #e7effb !important; border-color: #33475f !important; }
+    .top, .sidebar, .section, .mini, .slide, .intro-note, .definition, .flow div,
+    .keypoints div, .quiz-question, .option, .progress, th, td {
+      background-color: #101e30 !important;
     }
-  }
-  function rgba(value) {
-    const values = String(value).match(/[\\d.]+/g);
-    if (!values || values.length < 3) return null;
-    return { r: +values[0], g: +values[1], b: +values[2], a: values.length > 3 ? +values[3] : 1 };
-  }
-  function luminance(color) { return (0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b) / 255; }
-  function nearestBackground(el) {
-    for (let node = el; node; node = node.parentElement) {
-      const color = rgba(doc.defaultView.getComputedStyle(node).backgroundColor);
-      if (color && color.a > 0.35) return color;
-    }
-    return { r: 9, g: 19, b: 33, a: 1 };
-  }
-  for (const el of nodes) {
-    remember(el);
-    restore(el);
-    if (!dark) continue;
-    const background = rgba(doc.defaultView.getComputedStyle(el).backgroundColor);
-    if (background && background.a > 0.35 && luminance(background) > 0.78) {
-      el.style.setProperty("background-color", el === root || el === doc.body ? "#091321" : "#101e30", "important");
-    }
-  }
-  if (dark) {
-    for (const el of nodes) {
-      const background = nearestBackground(el);
-      const text = rgba(doc.defaultView.getComputedStyle(el).color);
-      if (text && luminance(background) < 0.3 && luminance(text) < 0.45) {
-        el.style.setProperty("color", el.tagName === "A" ? "#83c4ff" : "#e7effb", "important");
-      }
-      for (const side of ["top", "right", "bottom", "left"]) {
-        const property = "border-" + side + "-color";
-        const border = rgba(doc.defaultView.getComputedStyle(el).getPropertyValue(property));
-        if (border && border.a > 0.35 && luminance(border) > 0.72) el.style.setProperty(property, "#33475f", "important");
-      }
-    }
-  }
-  let observer = lessonFrameObservers.get(doc);
-  if (!observer && doc.body) {
-    observer = new MutationObserver(() => applySameOriginLessonTheme(doc, document.documentElement.dataset.theme === "dark" ? "dark" : "light"));
-    observer.observe(doc.body, { childList: true, subtree: true });
-    lessonFrameObservers.set(doc, observer);
-  }
+    .hero { background: linear-gradient(125deg, #0d3763, #1f6eaa) !important; }
+    .brand, .section h2, .section h3, .navlink b, a { color: #83c4ff !important; }
+    .code { background: #07111f !important; color: #e9f4ff !important; }
+    .btn { background: #1769aa !important; color: #fff !important; }
+    .btn.secondary { background: #172a40 !important; color: #e7effb !important; }
+    .feedback.good { background: #103326 !important; color: #8de0b3 !important; }
+    .feedback.bad { background: #3a2025 !important; color: #ffb8b8 !important; }
+    .intro-note { color: #f1dcae !important; }
+  `;
+  if (!existing) doc.head.appendChild(style);
   return true;
 }
 
@@ -161,7 +122,7 @@ function syncLessonFrameTheme(frame) {
   if (!frame?.contentWindow) return;
   const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
   try {
-    if (frame.contentDocument && applySameOriginLessonTheme(frame.contentDocument, theme)) return;
+    if (applySameOriginLessonTheme(frame.contentDocument, theme)) return;
   } catch {}
   frame.contentWindow.postMessage({ type: "ADS1_THEME", theme }, "*");
 }
@@ -170,6 +131,7 @@ function bindLessonFrameTheme(frame) {
   if (!frame || frame.dataset.themeSyncBound) return;
   frame.dataset.themeSyncBound = "true";
   frame.addEventListener("load", () => syncLessonFrameTheme(frame));
+  if (frame.contentDocument?.readyState === "complete") syncLessonFrameTheme(frame);
 }
 
 function syncAllLessonFrameThemes() {
