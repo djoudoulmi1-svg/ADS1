@@ -46,6 +46,33 @@ const bundledChapters = [
 ];
 let chapters = bundledChapters;
 
+function initializeTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem("ads1-theme"); } catch {}
+  const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches || false;
+  const theme = saved === "dark" || (saved !== "light" && prefersDark) ? "dark" : "light";
+  setTheme(theme);
+  document.querySelector("#theme-toggle")?.addEventListener("click", () => {
+    setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+  });
+}
+
+function setTheme(theme) {
+  const dark = theme === "dark";
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  try { localStorage.setItem("ads1-theme", dark ? "dark" : "light"); } catch {}
+  const button = document.querySelector("#theme-toggle");
+  if (button) {
+    button.innerHTML = dark
+      ? '<span aria-hidden="true">☀</span><span class="theme-toggle-label">Light mode</span>'
+      : '<span aria-hidden="true">☾</span><span class="theme-toggle-label">Dark mode</span>';
+    button.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+    button.setAttribute("aria-pressed", String(dark));
+  }
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.content = dark ? "#091321" : "#1261d6";
+}
+
 function route() {
   const [page, query = ""] = location.hash.slice(1).split("/");
   return { page: page || "home", query };

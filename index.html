@@ -4,22 +4,36 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#1261d6">
-  <meta name="description" content="An interactive learning hub for ADS1 at the University of Ouargla.">
+  <meta name="description" content="An interactive learning hub for ADS1 at the University of Ouargla. Learn algorithms, practise, and level up.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ADS1 Learning Hub">
+  <meta property="og:title" content="ADS1 Learning Hub — Learn. Practise. Level up.">
+  <meta property="og:description" content="Explore lessons, practise algorithms, and earn XP in the ADS1 Learning Hub at the University of Ouargla.">
+  <meta property="og:url" content="https://djoudoulmi1-svg.github.io/ADS1/">
+  <meta property="og:image" content="https://djoudoulmi1-svg.github.io/ADS1/assets/ads1-social-preview.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="ADS1 Learning Hub — Learn. Practise. Level up.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ADS1 Learning Hub — Learn. Practise. Level up.">
+  <meta name="twitter:description" content="Explore lessons, practise algorithms, and earn XP at the University of Ouargla.">
+  <meta name="twitter:image" content="https://djoudoulmi1-svg.github.io/ADS1/assets/ads1-social-preview.png">
   <title>ADS1 Learning Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=dark-share-1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="supabase-config.js?v=student-accounts-setup" defer></script>
   <script src="arena-core.js?v=arena-1" defer></script>
   <script src="arena.js?v=arena-1" defer></script>
-  <script src="app.js?v=arena-1" defer></script>
+  <script src="app.js?v=dark-share-1" defer></script>
 </head>
 <body>
   <header class="site-header">
     <a class="brand" href="#home" aria-label="ADS1 Learning Hub home"><span class="brand-mark">A<span>1</span></span><span>ADS1 <small>LEARNING HUB</small></span></a>
     <img class="university-logo" src="assets/university-ouargla-logo.jpg" alt="University of Kasdi Merbah Ouargla">
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false"><span aria-hidden="true">☾</span><span class="theme-toggle-label">Dark mode</span></button>
     <button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false"><span></span><span></span></button>
     <nav class="main-nav" aria-label="Main navigation">
       <a href="#home" data-nav="home">Home</a>
