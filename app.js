@@ -299,12 +299,8 @@ function computeProgressPercent() {
 // Recomputes the percentage after an Arena level or lesson changes and stores it.
 async function syncProgressPercent() {
   if (!backendClient || !currentSession || !currentProfile) return;
-  const percent = computeProgressPercent();
-  if (Number(currentProfile.progress_percent) === percent) return;
-  const { error } = await backendClient.from("profiles")
-    .update({ progress_percent: percent })
-    .eq("user_id", currentSession.user.id);
-  if (!error) currentProfile.progress_percent = percent;
+  // The database recalculates the shared percentage from lesson and Arena rows.
+  currentProfile.progress_percent = computeProgressPercent();
 }
 
 function profileColumns() {
@@ -870,8 +866,7 @@ async function loadAccountData(user) {
     .from("profiles")
     .upsert({
       user_id: user.id,
-      display_name: displayName,
-      progress_percent: existingProfile?.progress_percent || 0
+      display_name: displayName
     }, { onConflict: "user_id" })
     .select(profileColumns())
     .single();
@@ -893,13 +888,6 @@ async function loadAccountData(user) {
   if (window.ADS1ArenaUI) await window.ADS1ArenaUI.load();
   const percent = computeProgressPercent();
   currentProfile = { ...profile, progress_percent: percent };
-  if (Number(profile.progress_percent) !== percent) {
-    const { error: percentError } = await backendClient
-      .from("profiles")
-      .update({ progress_percent: percent })
-      .eq("user_id", user.id);
-    if (percentError) accountNotice = "Progress loaded, but its public percentage could not be updated.";
-  }
 }
 
 async function syncRoster() {
@@ -1028,16 +1016,7 @@ async function markComplete(event) {
       return;
     }
     chapterProgress.add(chapterId);
-    const percent = computeProgressPercent();
-    const { error: percentError } = await backendClient.from("profiles")
-      .update({ progress_percent: percent })
-      .eq("user_id", currentSession.user.id);
-    if (percentError) {
-      button.disabled = false;
-      setAccountNotice("Progress was saved, but the shared percentage could not be updated.", "error");
-      return;
-    }
-    if (currentProfile) currentProfile.progress_percent = percent;
+    if (currentProfile) currentProfile.progress_percent = computeProgressPercent();
   } else {
     localStorage.setItem(`ads1.chapter${chapterId}.completed`, "true");
   }
