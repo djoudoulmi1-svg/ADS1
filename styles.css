@@ -529,3 +529,8 @@ code { font-family: var(--mono); font-size: .92em; }
   .theme-toggle-label { display: none; }
   .menu-toggle { margin-left: 0; }
 }
+
+:root[data-theme="dark"] [data-track="trace"] { --accent-soft: #12352f; --accent-edge: #28786e; }
+:root[data-theme="dark"] [data-track="exam"] { --accent-soft: #281d40; --accent-edge: #6345a1; }
+:root[data-theme="dark"] [data-track="clab"] { --accent-soft: #3a251c; --accent-edge: #90502d; }
+:root[data-theme="dark"] [data-track] .result-banner.win { color: var(--ink); background: #122338; }
