@@ -102,7 +102,8 @@ function applySameOriginLessonTheme(doc, theme) {
     html, body { background: #091321 !important; color: #e7effb !important; }
     body * { color: #e7effb !important; border-color: #33475f !important; }
     .top, .sidebar, .section, .mini, .slide, .intro-note, .definition, .flow div,
-    .keypoints div, .quiz-question, .option, .progress, th, td {
+    .keypoints div, .quiz-question, .option, .progress, th, td,
+    .navlink:hover, .navlink.active, .num, .slide summary {
       background-color: #101e30 !important;
     }
     .hero { background: linear-gradient(125deg, #0d3763, #1f6eaa) !important; }
