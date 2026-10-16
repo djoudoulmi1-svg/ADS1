@@ -138,7 +138,7 @@ for each statement execute function public.refresh_all_profile_progress();
 -- A student's profile row remains writable, but completion percentage is not.
 revoke insert, update on table public.profiles from authenticated;
 grant insert (user_id, display_name, show_email) on table public.profiles to authenticated;
-grant update (display_name, show_email) on table public.profiles to authenticated;
+grant update (user_id, display_name, show_email) on table public.profiles to authenticated;
 
 -- Bring existing values in line with their saved lesson and Arena records.
 update public.profiles p
