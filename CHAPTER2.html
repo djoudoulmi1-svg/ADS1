@@ -264,6 +264,56 @@ input:focus{
   border-color:var(--blue)!important;
 }
 
+html[data-ads1-theme="dark"]{color-scheme:dark}
+html[data-ads1-theme="dark"] body,
+html[data-ads1-theme="dark"] .app,
+html[data-ads1-theme="dark"] .top,
+html[data-ads1-theme="dark"] .main,
+html[data-ads1-theme="dark"] .rail,
+html[data-ads1-theme="dark"] .footer,
+html[data-ads1-theme="dark"] main,
+html[data-ads1-theme="dark"] .slide,
+html[data-ads1-theme="dark"] .content{background:#091321!important;color:#e7effb!important}
+html[data-ads1-theme="dark"] .card,
+html[data-ads1-theme="dark"] .flow-box,
+html[data-ads1-theme="dark"] .focus-box,
+html[data-ads1-theme="dark"] .step,
+html[data-ads1-theme="dark"] .memory,
+html[data-ads1-theme="dark"] .question,
+html[data-ads1-theme="dark"] .feedback,
+html[data-ads1-theme="dark"] .var,
+html[data-ads1-theme="dark"] .teacher-note,
+html[data-ads1-theme="dark"] .choice,
+html[data-ads1-theme="dark"] .badge,
+html[data-ads1-theme="dark"] .trace-line,
+html[data-ads1-theme="dark"] .chapter-pill{background:#101e30!important;color:#e7effb!important;border-color:#33475f!important;box-shadow:none!important}
+html[data-ads1-theme="dark"] .brand,
+html[data-ads1-theme="dark"] .univ-main,
+html[data-ads1-theme="dark"] h1,
+html[data-ads1-theme="dark"] h2,
+html[data-ads1-theme="dark"] h3,
+html[data-ads1-theme="dark"] .kicker,
+html[data-ads1-theme="dark"] .var .val,
+html[data-ads1-theme="dark"] .step strong,
+html[data-ads1-theme="dark"] .click-hint,
+html[data-ads1-theme="dark"] .flow-arrow{color:#83c4ff!important}
+html[data-ads1-theme="dark"] .chapter,
+html[data-ads1-theme="dark"] .univ-faculty,
+html[data-ads1-theme="dark"] .lead,
+html[data-ads1-theme="dark"] .card p,
+html[data-ads1-theme="dark"] .step-detail,
+html[data-ads1-theme="dark"] .presentation-date,
+html[data-ads1-theme="dark"] .slide-number,
+html[data-ads1-theme="dark"] .trace-line{color:#a9bad0!important}
+html[data-ads1-theme="dark"] .code{background:#07111f!important;color:#e9f4ff!important}
+html[data-ads1-theme="dark"] .btn,
+html[data-ads1-theme="dark"] .nav button,
+html[data-ads1-theme="dark"] .full{background:#172a40!important;color:#e7effb!important;border-color:#33475f!important}
+html[data-ads1-theme="dark"] .btn.primary{background:#1769aa!important;color:#fff!important}
+html[data-ads1-theme="dark"] .good{color:#8de0b3!important}
+html[data-ads1-theme="dark"] .bad{color:#ffb8b8!important}
+html[data-ads1-theme="dark"] input{background:#0b1828!important;color:#e7effb!important;border-color:#33475f!important}
+html[data-ads1-theme="dark"] .progress{background:#172a40!important}
 </style>
 </head>
 <body>
@@ -586,5 +636,11 @@ document.getElementById("full").onclick=()=>document.documentElement.requestFull
 document.addEventListener("keydown",e=>{if(e.key==="ArrowRight")go(page+1);if(e.key==="ArrowLeft")go(page-1);if(e.key==="Home")go(0);if(e.key==="End")go(slides.length-1)});
 render();
 </script>
-<div id="slideNumber" class="slide-number">01 / 01</div><div id="slideProgress" class="slide-progress" style="width:0%"></div></body>
+<div id="slideNumber" class="slide-number">01 / 01</div><div id="slideProgress" class="slide-progress" style="width:0%"></div><script>
+window.addEventListener("message", event => {
+  if (event.source !== parent || !event.data || event.data.type !== "ADS1_THEME") return;
+  document.documentElement.dataset.ads1Theme = event.data.theme === "dark" ? "dark" : "light";
+});
+</script>
+</body>
 </html>
