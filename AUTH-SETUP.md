@@ -19,6 +19,10 @@ window.ADS1_SUPABASE_CONFIG = {
 
 The publishable/anon key is intended for browser use and is protected by the SQL row-level security policies. **Never put a service-role key or database password in this file or in GitHub.**
 
+### Protect progress values
+
+After the base account schema, administrator schema, and Arena/email-privacy migration are installed, run `supabase/migrations/20261016_derived_progress_percent.sql` in the Supabase SQL Editor. It makes the database recalculate the displayed percentage from saved lesson and Arena progress, and removes browser permission to write that percentage directly. Keep this migration installed when updating the project.
+
 ## 2. Create the private roster Sheet
 
 1. While signed in to the Gmail/Google account that should own the roster, create a blank Google Sheet.
