@@ -76,7 +76,7 @@ function setTheme(theme) {
 
 function withLessonThemeBridge(html) {
   const source = String(html || "");
-  const bridge = "<style id=\"ads1-theme-bridge-style\">html{color-scheme:light}html[data-ads1-theme=\"dark\"]{color-scheme:dark;background:#091321;color:#e7effb}</style><script>(() => {\n  const original = new WeakMap();\n  const properties = [\"background-color\", \"color\", \"border-top-color\", \"border-right-color\", \"border-bottom-color\", \"border-left-color\"];\n  function save(el) {\n    if (!original.has(el)) {\n      const values = {};\n      for (const property of properties) values[property] = [el.style.getPropertyValue(property), el.style.getPropertyPriority(property)];\n      original.set(el, values);\n    }\n  }\n  function restore(el) {\n    const values = original.get(el);\n    if (!values) return;\n    for (const property of properties) {\n      const [value, priority] = values[property];\n      if (value) el.style.setProperty(property, value, priority);\n      else el.style.removeProperty(property);\n    }\n  }\n  function rgba(value) {\n    const values = String(value).match(/[\\d.]+/g);\n    if (!values || values.length < 3) return null;\n    return { r: +values[0], g: +values[1], b: +values[2], a: values.length > 3 ? +values[3] : 1 };\n  }\n  function luminance(color) {\n    return (0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b) / 255;\n  }\n  function nearestBackground(el) {\n    for (let node = el; node; node = node.parentElement) {\n      const color = rgba(getComputedStyle(node).backgroundColor);\n      if (color && color.a > 0.35) return color;\n    }\n    return { r: 9, g: 19, b: 33, a: 1 };\n  }\n  function apply(theme) {\n    const dark = theme === \"dark\";\n    const root = document.documentElement;\n    root.dataset.ads1Theme = dark ? \"dark\" : \"light\";\n    root.style.colorScheme = dark ? \"dark\" : \"light\";\n    const nodes = [root, ...document.querySelectorAll(\"body *\")];\n    for (const el of nodes) {\n      save(el);\n      restore(el);\n      if (!dark) continue;\n      const background = rgba(getComputedStyle(el).backgroundColor);\n      if (background && background.a > 0.35 && luminance(background) > 0.78) {\n        el.style.setProperty(\"background-color\", el === root || el === document.body ? \"#091321\" : \"#101e30\", \"important\");\n      }\n    }\n    if (!dark) return;\n    for (const el of nodes) {\n      const background = nearestBackground(el);\n      const text = rgba(getComputedStyle(el).color);\n      if (text && luminance(background) < 0.3 && luminance(text) < 0.45) {\n        el.style.setProperty(\"color\", el.tagName === \"A\" ? \"#83c4ff\" : \"#e7effb\", \"important\");\n      }\n      for (const side of [\"top\", \"right\", \"bottom\", \"left\"]) {\n        const property = \"border-\" + side + \"-color\";\n        const border = rgba(getComputedStyle(el).getPropertyValue(property));\n        if (border && border.a > 0.35 && luminance(border) > 0.72) el.style.setProperty(property, \"#33475f\", \"important\");\n      }\n    }\n  }\n  window.addEventListener(\"message\", event => {\n    if (event.source !== parent || !event.data || event.data.type !== \"ADS1_THEME\") return;\n    apply(event.data.theme);\n  });\n})();</script>";
+  const bridge = "<style id=\"ads1-theme-bridge-style\">html{color-scheme:light}html[data-ads1-theme=\"dark\"]{color-scheme:dark;background:#091321;color:#e7effb}</style><script>(() => {\n  const original = new WeakMap();\n  const properties = [\"background-color\", \"color\", \"border-top-color\", \"border-right-color\", \"border-bottom-color\", \"border-left-color\"];\n  function save(el) {\n    if (!original.has(el)) {\n      const values = {};\n      for (const property of properties) values[property] = [el.style.getPropertyValue(property), el.style.getPropertyPriority(property)];\n      original.set(el, values);\n    }\n  }\n  function restore(el) {\n    const values = original.get(el);\n    if (!values) return;\n    for (const property of properties) {\n      const [value, priority] = values[property];\n      if (value) el.style.setProperty(property, value, priority);\n      else el.style.removeProperty(property);\n    }\n  }\n  function rgba(value) {\n    const values = String(value).match(/[\d.]+/g);\n    if (!values || values.length < 3) return null;\n    return { r: +values[0], g: +values[1], b: +values[2], a: values.length > 3 ? +values[3] : 1 };\n  }\n  function luminance(color) {\n    return (0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b) / 255;\n  }\n  function nearestBackground(el) {\n    for (let node = el; node; node = node.parentElement) {\n      const color = rgba(getComputedStyle(node).backgroundColor);\n      if (color && color.a > 0.35) return color;\n    }\n    return { r: 9, g: 19, b: 33, a: 1 };\n  }\n  function apply(theme) {\n    const dark = theme === \"dark\";\n    const root = document.documentElement;\n    root.dataset.ads1Theme = dark ? \"dark\" : \"light\";\n    root.style.colorScheme = dark ? \"dark\" : \"light\";\n    const nodes = [root, ...document.querySelectorAll(\"body *\")];\n    for (const el of nodes) {\n      save(el);\n      restore(el);\n      if (!dark) continue;\n      const background = rgba(getComputedStyle(el).backgroundColor);\n      if (background && background.a > 0.35 && luminance(background) > 0.78) {\n        el.style.setProperty(\"background-color\", el === root || el === document.body ? \"#091321\" : \"#101e30\", \"important\");\n      }\n    }\n    if (!dark) return;\n    for (const el of nodes) {\n      const background = nearestBackground(el);\n      const text = rgba(getComputedStyle(el).color);\n      if (text && luminance(background) < 0.3 && luminance(text) < 0.45) {\n        el.style.setProperty(\"color\", el.tagName === \"A\" ? \"#83c4ff\" : \"#e7effb\", \"important\");\n      }\n      for (const side of [\"top\", \"right\", \"bottom\", \"left\"]) {\n        const property = \"border-\" + side + \"-color\";\n        const border = rgba(getComputedStyle(el).getPropertyValue(property));\n        if (border && border.a > 0.35 && luminance(border) > 0.72) el.style.setProperty(property, \"#33475f\", \"important\");\n      }\n    }\n  }\n  window.addEventListener(\"message\", event => {\n    if (event.source !== parent || !event.data || event.data.type !== \"ADS1_THEME\") return;\n    apply(event.data.theme);\n  });\n})();</script>";
   const headEnd = source.search(/<\/head\s*>/i);
   if (headEnd >= 0) return source.slice(0, headEnd) + bridge + source.slice(headEnd);
   const bodyStart = source.match(/<body\b[^>]*>/i);
@@ -87,9 +87,83 @@ function withLessonThemeBridge(html) {
   return bridge + source;
 }
 
+const lessonFrameOriginalStyles = new WeakMap();
+const lessonFrameObservers = new WeakMap();
+const lessonFrameStyleProperties = ["background-color", "color", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color"];
+
+function applySameOriginLessonTheme(doc, theme) {
+  const dark = theme === "dark";
+  const root = doc.documentElement;
+  if (!root) return false;
+  root.style.colorScheme = dark ? "dark" : "light";
+  const nodes = [root, ...(doc.body ? [doc.body, ...doc.body.querySelectorAll("*")] : [])];
+  function remember(el) {
+    if (lessonFrameOriginalStyles.has(el)) return;
+    const values = {};
+    for (const property of lessonFrameStyleProperties) values[property] = [el.style.getPropertyValue(property), el.style.getPropertyPriority(property)];
+    lessonFrameOriginalStyles.set(el, values);
+  }
+  function restore(el) {
+    const values = lessonFrameOriginalStyles.get(el);
+    if (!values) return;
+    for (const property of lessonFrameStyleProperties) {
+      const [value, priority] = values[property];
+      if (value) el.style.setProperty(property, value, priority);
+      else el.style.removeProperty(property);
+    }
+  }
+  function rgba(value) {
+    const values = String(value).match(/[\\d.]+/g);
+    if (!values || values.length < 3) return null;
+    return { r: +values[0], g: +values[1], b: +values[2], a: values.length > 3 ? +values[3] : 1 };
+  }
+  function luminance(color) { return (0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b) / 255; }
+  function nearestBackground(el) {
+    for (let node = el; node; node = node.parentElement) {
+      const color = rgba(doc.defaultView.getComputedStyle(node).backgroundColor);
+      if (color && color.a > 0.35) return color;
+    }
+    return { r: 9, g: 19, b: 33, a: 1 };
+  }
+  for (const el of nodes) {
+    remember(el);
+    restore(el);
+    if (!dark) continue;
+    const background = rgba(doc.defaultView.getComputedStyle(el).backgroundColor);
+    if (background && background.a > 0.35 && luminance(background) > 0.78) {
+      el.style.setProperty("background-color", el === root || el === doc.body ? "#091321" : "#101e30", "important");
+    }
+  }
+  if (dark) {
+    for (const el of nodes) {
+      const background = nearestBackground(el);
+      const text = rgba(doc.defaultView.getComputedStyle(el).color);
+      if (text && luminance(background) < 0.3 && luminance(text) < 0.45) {
+        el.style.setProperty("color", el.tagName === "A" ? "#83c4ff" : "#e7effb", "important");
+      }
+      for (const side of ["top", "right", "bottom", "left"]) {
+        const property = "border-" + side + "-color";
+        const border = rgba(doc.defaultView.getComputedStyle(el).getPropertyValue(property));
+        if (border && border.a > 0.35 && luminance(border) > 0.72) el.style.setProperty(property, "#33475f", "important");
+      }
+    }
+  }
+  let observer = lessonFrameObservers.get(doc);
+  if (!observer && doc.body) {
+    observer = new MutationObserver(() => applySameOriginLessonTheme(doc, document.documentElement.dataset.theme === "dark" ? "dark" : "light"));
+    observer.observe(doc.body, { childList: true, subtree: true });
+    lessonFrameObservers.set(doc, observer);
+  }
+  return true;
+}
+
 function syncLessonFrameTheme(frame) {
   if (!frame?.contentWindow) return;
-  frame.contentWindow.postMessage({ type: "ADS1_THEME", theme: document.documentElement.dataset.theme === "dark" ? "dark" : "light" }, "*");
+  const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  try {
+    if (frame.contentDocument && applySameOriginLessonTheme(frame.contentDocument, theme)) return;
+  } catch {}
+  frame.contentWindow.postMessage({ type: "ADS1_THEME", theme }, "*");
 }
 
 function bindLessonFrameTheme(frame) {
