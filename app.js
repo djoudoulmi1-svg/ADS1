@@ -699,6 +699,10 @@ function render() {
   const arenaUI = window.ADS1ArenaUI;
   const view = page === "chapters" ? home() : page === "chapter" ? chapterPage(query) : page === "lesson" ? lessonPage(query) : page === "account" ? accountPage() : page === "about" ? aboutPage() : page === "arena" && arenaUI ? arenaUI.view() : home();
   app.innerHTML = view;
+  document.querySelectorAll("iframe.lesson-frame").forEach(frame => {
+    bindLessonFrameTheme(frame);
+    syncLessonFrameTheme(frame);
+  });
   document.querySelectorAll("[data-nav]").forEach(link => link.classList.toggle("active", link.dataset.nav === page || (page === "chapter" && link.dataset.nav === "chapters")));
   if (page === "arena" && arenaUI) arenaUI.bind();
   nav.classList.remove("open");
