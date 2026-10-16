@@ -5,7 +5,7 @@
 create or replace function public.calculate_progress_percent(p_user_id uuid)
 returns integer
 language sql
-stable
+volatile
 security definer
 set search_path = ''
 as $$
