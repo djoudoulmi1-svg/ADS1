@@ -71,6 +71,35 @@ function setTheme(theme) {
   }
   const themeColor = document.querySelector('meta[name="theme-color"]');
   if (themeColor) themeColor.content = dark ? "#091321" : "#1261d6";
+  syncAllLessonFrameThemes();
+}
+
+function withLessonThemeBridge(html) {
+  const source = String(html || "");
+  const bridge = "<style id=\"ads1-theme-bridge-style\">html{color-scheme:light}html[data-ads1-theme=\"dark\"]{color-scheme:dark;background:#091321;color:#e7effb}</style><script>(() => {\n  const original = new WeakMap();\n  const properties = [\"background-color\", \"color\", \"border-top-color\", \"border-right-color\", \"border-bottom-color\", \"border-left-color\"];\n  function save(el) {\n    if (!original.has(el)) {\n      const values = {};\n      for (const property of properties) values[property] = [el.style.getPropertyValue(property), el.style.getPropertyPriority(property)];\n      original.set(el, values);\n    }\n  }\n  function restore(el) {\n    const values = original.get(el);\n    if (!values) return;\n    for (const property of properties) {\n      const [value, priority] = values[property];\n      if (value) el.style.setProperty(property, value, priority);\n      else el.style.removeProperty(property);\n    }\n  }\n  function rgba(value) {\n    const values = String(value).match(/[\\d.]+/g);\n    if (!values || values.length < 3) return null;\n    return { r: +values[0], g: +values[1], b: +values[2], a: values.length > 3 ? +values[3] : 1 };\n  }\n  function luminance(color) {\n    return (0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b) / 255;\n  }\n  function nearestBackground(el) {\n    for (let node = el; node; node = node.parentElement) {\n      const color = rgba(getComputedStyle(node).backgroundColor);\n      if (color && color.a > 0.35) return color;\n    }\n    return { r: 9, g: 19, b: 33, a: 1 };\n  }\n  function apply(theme) {\n    const dark = theme === \"dark\";\n    const root = document.documentElement;\n    root.dataset.ads1Theme = dark ? \"dark\" : \"light\";\n    root.style.colorScheme = dark ? \"dark\" : \"light\";\n    const nodes = [root, ...document.querySelectorAll(\"body *\")];\n    for (const el of nodes) {\n      save(el);\n      restore(el);\n      if (!dark) continue;\n      const background = rgba(getComputedStyle(el).backgroundColor);\n      if (background && background.a > 0.35 && luminance(background) > 0.78) {\n        el.style.setProperty(\"background-color\", el === root || el === document.body ? \"#091321\" : \"#101e30\", \"important\");\n      }\n    }\n    if (!dark) return;\n    for (const el of nodes) {\n      const background = nearestBackground(el);\n      const text = rgba(getComputedStyle(el).color);\n      if (text && luminance(background) < 0.3 && luminance(text) < 0.45) {\n        el.style.setProperty(\"color\", el.tagName === \"A\" ? \"#83c4ff\" : \"#e7effb\", \"important\");\n      }\n      for (const side of [\"top\", \"right\", \"bottom\", \"left\"]) {\n        const property = \"border-\" + side + \"-color\";\n        const border = rgba(getComputedStyle(el)[property]);\n        if (border && border.a > 0.35 && luminance(border) > 0.72) el.style.setProperty(property, \"#33475f\", \"important\");\n      }\n    }\n  }\n  window.addEventListener(\"message\", event => {\n    if (event.source !== parent || !event.data || event.data.type !== \"ADS1_THEME\") return;\n    apply(event.data.theme);\n  });\n})();</script>";
+  const headEnd = source.search(/<\/head\s*>/i);
+  if (headEnd >= 0) return source.slice(0, headEnd) + bridge + source.slice(headEnd);
+  const bodyStart = source.match(/<body\b[^>]*>/i);
+  if (bodyStart) {
+    const index = source.indexOf(bodyStart[0]) + bodyStart[0].length;
+    return source.slice(0, index) + bridge + source.slice(index);
+  }
+  return bridge + source;
+}
+
+function syncLessonFrameTheme(frame) {
+  if (!frame?.contentWindow) return;
+  frame.contentWindow.postMessage({ type: "ADS1_THEME", theme: document.documentElement.dataset.theme === "dark" ? "dark" : "light" }, "*");
+}
+
+function bindLessonFrameTheme(frame) {
+  if (!frame || frame.dataset.themeSyncBound) return;
+  frame.dataset.themeSyncBound = "true";
+  frame.addEventListener("load", () => syncLessonFrameTheme(frame));
+}
+
+function syncAllLessonFrameThemes() {
+  document.querySelectorAll("iframe.lesson-frame, #chapter-upload-preview").forEach(syncLessonFrameTheme);
 }
 
 function route() {
@@ -167,13 +196,14 @@ function lessonPage(id) {
 async function loadRemoteLesson() {
   const frame = document.querySelector("iframe.lesson-frame[data-remote-src]");
   if (!frame) return;
+  bindLessonFrameTheme(frame);
   const url = frame.dataset.remoteSrc;
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Lesson request failed (${response.status})`);
     const html = await response.text();
     if (!frame.isConnected) return;
-    frame.srcdoc = html;
+    frame.srcdoc = withLessonThemeBridge(html);
   } catch (error) {
     if (!frame.isConnected) return;
     frame.srcdoc = `<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:2rem"><p>This lesson could not be loaded. Please refresh the page and try again.</p></body>`;
@@ -361,8 +391,9 @@ function clearChapterPreview() {
   chapterPreviewUrl = null;
 }
 
-function previewChapterFile(event) {
-  const file = event.currentTarget.files?.[0];
+async function previewChapterFile(event) {
+  const input = event.currentTarget;
+  const file = input.files?.[0];
   const preview = document.querySelector("#chapter-upload-preview");
   const status = document.querySelector("#chapter-preview-status");
   if (!preview || !status) return;
@@ -373,11 +404,19 @@ function previewChapterFile(event) {
     status.textContent = "Select a file to preview the rendered lesson before uploading it.";
     return;
   }
-  const html = new Blob([file], { type: "text/html;charset=utf-8" });
-  chapterPreviewUrl = URL.createObjectURL(html);
-  preview.src = chapterPreviewUrl;
-  preview.hidden = false;
-  status.textContent = `Previewing ${file.name}. Upload it to make this rendered lesson available to students.`;
+  status.textContent = `Preparing the preview for ${file.name}…`;
+  try {
+    const source = await file.text();
+    if (!preview.isConnected || input.files?.[0] !== file) return;
+    const html = new Blob([withLessonThemeBridge(source)], { type: "text/html;charset=utf-8" });
+    chapterPreviewUrl = URL.createObjectURL(html);
+    bindLessonFrameTheme(preview);
+    preview.src = chapterPreviewUrl;
+    preview.hidden = false;
+    status.textContent = `Previewing ${file.name}. Its colors follow the site theme. Upload it to make this lesson available to students.`;
+  } catch {
+    status.textContent = "This HTML file could not be previewed. Try saving it as UTF-8 and selecting it again.";
+  }
 }
 
 function bindAdminForms() {
