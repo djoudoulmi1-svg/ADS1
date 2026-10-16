@@ -87,35 +87,64 @@ function withLessonThemeBridge(html) {
   return bridge + source;
 }
 
+const lessonOriginalBackgrounds = new WeakMap();
+
 function applySameOriginLessonTheme(doc, theme) {
   if (!doc?.documentElement || !doc.head || !doc.body) return false;
   const existing = doc.getElementById("ads1-parent-theme");
+  existing?.remove();
+  for (const el of [doc.documentElement, doc.body, ...doc.body.querySelectorAll("*")]) {
+    const original = lessonOriginalBackgrounds.get(el);
+    if (original) {
+      if (original.value) el.style.setProperty("background-color", original.value, original.priority);
+      else el.style.removeProperty("background-color");
+    }
+  }
   if (theme !== "dark") {
-    existing?.remove();
     doc.documentElement.style.removeProperty("color-scheme");
     return true;
   }
-  const style = existing || doc.createElement("style");
+  const style = doc.createElement("style");
   style.id = "ads1-parent-theme";
   style.textContent = `
     :root { color-scheme: dark !important; }
     html, body { background: #091321 !important; color: #e7effb !important; }
     body * { color: #e7effb !important; border-color: #33475f !important; }
     .top, .sidebar, .section, .mini, .slide, .intro-note, .definition, .flow div,
-    .keypoints div, .quiz-question, .option, .progress, th, td,
-    .navlink:hover, .navlink.active, .num, .slide summary {
+    .keypoints div, .quiz-question, .option, .progress, th, td, .app, .main,
+    .rail, .footer, .chapter-pill, .navlink:hover, .navlink.active, .num, .slide summary {
       background-color: #101e30 !important;
     }
     .hero { background: linear-gradient(125deg, #0d3763, #1f6eaa) !important; }
     .brand, .section h2, .section h3, .navlink b, a { color: #83c4ff !important; }
     .code { background: #07111f !important; color: #e9f4ff !important; }
+    button { background: #172a40 !important; color: #e7effb !important; border-color: #33475f !important; }
     .btn { background: #1769aa !important; color: #fff !important; }
     .btn.secondary { background: #172a40 !important; color: #e7effb !important; }
     .feedback.good { background: #103326 !important; color: #8de0b3 !important; }
     .feedback.bad { background: #3a2025 !important; color: #ffb8b8 !important; }
     .intro-note { color: #f1dcae !important; }
   `;
-  if (!existing) doc.head.appendChild(style);
+  doc.head.appendChild(style);
+
+  const elements = [doc.documentElement, doc.body, ...doc.body.querySelectorAll("*")];
+  for (const el of elements) {
+    if (!lessonOriginalBackgrounds.has(el)) {
+      lessonOriginalBackgrounds.set(el, {
+        value: el.style.getPropertyValue("background-color"),
+        priority: el.style.getPropertyPriority("background-color")
+      });
+    }
+    const color = doc.defaultView.getComputedStyle(el).backgroundColor;
+    const channels = color.match(/[\\d.]+/g)?.map(Number);
+    if (!channels || channels.length < 3 || (channels.length > 3 && channels[3] <= 0.35)) continue;
+    const luminance = (0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]) / 255;
+    if (luminance > 0.72) {
+      const isPageSurface = el === doc.documentElement || el === doc.body || el.classList?.contains("app") || el.classList?.contains("main");
+      el.style.setProperty("background-color", isPageSurface ? "#091321" : "#101e30", "important");
+    }
+  }
+  doc.documentElement.style.colorScheme = "dark";
   return true;
 }
 
