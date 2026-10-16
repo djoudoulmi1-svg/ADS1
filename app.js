@@ -995,6 +995,7 @@ async function startApplication() {
 }
 
 window.addEventListener("hashchange", render);
+initializeTheme();
 render();
 startApplication();
 
