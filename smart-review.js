@@ -53,7 +53,7 @@
       const again=make("button","button","Try another review");again.type="button";again.onclick=()=>{state=null;renderRoute();};finish.append(again);root.append(finish);
     }else{
       const q=state.q, panel=make("section","review-question"), row=make("div","review-progress");
-      row.append(make("span","","Question "+(state.used.length+1)+" of 6"),make("span","",state.score+" correct"));
+      row.append(make("span","","Question "+(state.used.length+(state.choice===null?1:0))+" of 6"),make("span","",state.score+" correct"));
       const progress=document.createElement("progress");progress.max=6;progress.value=state.used.length;progress.setAttribute("aria-label","Review progress");
       panel.append(row,progress,make("span","review-topic",q.topic),make("h2","",""));
       panel.lastChild.id="review-prompt";panel.lastChild.textContent=q.prompt;
