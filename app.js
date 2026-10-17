@@ -1025,7 +1025,8 @@ async function markComplete(event) {
   } else {
     localStorage.setItem(`ads1.chapter${chapterId}.completed`, "true");
   }
-  button.textContent = "Completed";
+  button.classList.add("completion-celebration");
+  button.innerHTML = '<span class="completion-check" aria-hidden="true">✓</span> Completed';
 }
 
 async function loadChapterCatalog() {
