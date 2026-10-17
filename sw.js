@@ -1,5 +1,5 @@
 /* Cache the public learning hub shell and supplied lessons for offline reading. */
-const CACHE_NAME = "ads1-offline-v11";
+const CACHE_NAME = "ads1-offline-v12";
 const BASE = new URL("./", self.location.href);
 const SHELL_URLS = [
   "./",
@@ -9,7 +9,7 @@ const SHELL_URLS = [
   "./arena-core.js?v=arena-1",
   "./arena.js?v=debug-lab-1",
   "./algorithm-bug-lab.js?v=2",
-  "./app.js?v=feature-audit-fix-2",
+  "./app.js?v=feature-audit-fix-3",
   "./lesson-resume.js",
   "./smart-review.js?v=smart-review-3",
   "./glossary.js?v=3",
@@ -19,7 +19,8 @@ const SHELL_URLS = [
   "./chapters.json",
   "./CHAPTER1.html",
   "./CHAPTER2.html",
-  "./assets/ads1-logo.svg",\n  "./assets/university-ouargla-logo.png",
+  "./assets/ads1-logo.svg",
+  "./assets/university-ouargla-logo.png",
   "./assets/university-ouargla-logo.jpg"
 ];
 
