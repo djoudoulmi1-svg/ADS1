@@ -931,3 +931,22 @@ code { font-family: var(--mono); font-size: .92em; }
 .offline-status { padding: 5px 9px; color: var(--green); background: var(--paper); border: 1px solid var(--line); border-radius: 999px; font-size: 11px; white-space: nowrap; }
 .offline-status[data-online="false"] { color: #a65309; border-color: currentColor; }
 @media (max-width: 620px) { .offline-status { flex-basis: 100%; width: fit-content; } }
+
+/* Distraction-free lesson reading mode */
+body.reading-mode .site-header,
+body.reading-mode .site-footer { display: none; }
+body.reading-mode .lesson-toolbar { position: sticky; top: 0; z-index: 20; padding-inline: max(3vw, 16px); box-shadow: 0 5px 18px rgba(0, 0, 0, .12); }
+body.reading-mode .lesson-frame { height: calc(100vh - 78px); min-height: 0; }
+#reading-mode-toggle[aria-pressed="true"] { color: #fff; background: var(--blue); border-color: var(--blue); }
+#reading-mode-toggle:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+@media (max-width: 600px) {
+  body.reading-mode .lesson-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 8px 10px; }
+  body.reading-mode .lesson-toolbar-title { grid-column: 1 / -1; grid-row: 1; text-align: center; }
+  body.reading-mode .lesson-toolbar > .button:first-child { grid-column: 1; grid-row: 2; justify-self: start; }
+  body.reading-mode #mark-complete { grid-column: 1; grid-row: 3; justify-self: start; }
+  body.reading-mode #reading-mode-toggle { grid-column: 2; grid-row: 2 / span 2; justify-self: end; align-self: center; }
+  body.reading-mode .lesson-frame { height: calc(100svh - 124px); min-height: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.reading-mode * { scroll-behavior: auto !important; }
+}
