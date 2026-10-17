@@ -231,6 +231,7 @@ function home() {
       <div class="hero-actions">
         ${(() => { const last = chapters.find(item => item.available && String(item.id) === getLastOpenedChapterId()); return last ? `<a class="button" href="#lesson/${escapeHTML(last.id)}">Continue: ${escapeHTML(last.title)} <span class="arrow" aria-hidden="true">→</span></a>` : `<a class="button" href="#chapters">Explore chapters <span class="arrow" aria-hidden="true">→</span></a>`; })()}
         ${arenaUI ? `<a class="button secondary" href="#arena">Enter the Arena <span class="arrow" aria-hidden="true">→</span></a>` : ""}
+        <a class="button secondary" href="https://t.me/STUDYADS01_BOT" target="_blank" rel="noopener noreferrer">Ask the study bot <span class="arrow" aria-hidden="true">↗</span></a>
       </div>
     </div>
     ${arenaUI ? arenaUI.heroDemo() : ""}
