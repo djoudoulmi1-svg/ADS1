@@ -59,7 +59,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  select auth.uid() is not null and (
+  select public.is_active_user() and (
     exists (select 1 from public.site_owners as o where o.user_id = auth.uid())
     or exists (
       select 1 from public.site_admins as a
@@ -75,7 +75,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  select auth.uid() is not null
+  select public.is_active_user()
     and exists (select 1 from public.site_owners as o where o.user_id = auth.uid());
 $$;
 
