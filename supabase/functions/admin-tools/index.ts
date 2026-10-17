@@ -114,7 +114,166 @@ Deno.serve(async request => {
   }
 
   if (body.action === "delete-chapter") {
-    return jsonResponse({ error: "Chapters can only be hidden; permanent deletion is disabled" }, 403);
+    const chapterId = String(body.chapterId || "");
+    if (!/^extra-(?:[3-9]|[1-9][0-9])-[a-f0-9]{20}$/i.test(chapterId)) {
+      return jsonResponse({ error: "Only uploaded chapters can be permanently deleted" }, 400);
+    }
+
+    const { data: chapter, error: lookupError } = await adminClient
+      .from("chapter_catalog")
+      .select("id, file_path")
+      .eq("id", chapterId)
+      .maybeSingle();
+    if (lookupError) {
+      console.error("Could not find chapter for deletion:", lookupError.message);
+      return jsonResponse({ error: "Could not load this chapter" }, 500);
+    }
+    if (!chapter) return jsonResponse({ error: "Chapter not found" }, 404);
+    if (!new RegExp(`^${chapterId}/[a-f0-9-]+\\.htmlimport { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const allowedOrigin = "https://djoudoulmi1-svg.github.io";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": allowedOrigin,
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Vary": "Origin"
+};
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
+}
+
+Deno.serve(async request => {
+  if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+  if (request.headers.get("Origin") && request.headers.get("Origin") !== allowedOrigin) {
+    return jsonResponse({ error: "Origin not allowed" }, 403);
+  }
+
+  const authorization = request.headers.get("Authorization") || "";
+  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!token || !supabaseUrl || !anonKey || !serviceRoleKey) {
+    return jsonResponse({ error: "Admin service is not configured" }, 503);
+  }
+
+  const userClient = createClient(supabaseUrl, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+  const { data: userData, error: userError } = await userClient.auth.getUser(token);
+  const caller = userData.user;
+  if (userError || !caller || !caller.email_confirmed_at) {
+    return jsonResponse({ error: "A confirmed signed-in account is required" }, 401);
+  }
+
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+  const { data: adminRow, error: adminError } = await adminClient
+    .from("site_admins")
+    .select("user_id")
+    .eq("user_id", caller.id)
+    .maybeSingle();
+  if (adminError) {
+    console.error("Could not verify the administrator role:", adminError.message);
+    return jsonResponse({ error: "Admin setup is incomplete" }, 503);
+  }
+  const { data: ownerRow, error: ownerError } = await adminClient
+    .from("site_owners")
+    .select("user_id")
+    .eq("user_id", caller.id)
+    .maybeSingle();
+  if (ownerError) {
+    console.error("Could not verify the site owner:", ownerError.message);
+    return jsonResponse({ error: "Administrator setup is incomplete" }, 503);
+  }
+  const callerIsOwner = Boolean(ownerRow);
+  if (!adminRow && !callerIsOwner) return jsonResponse({ error: "Administrator access is required" }, 403);
+
+  const { data: disabledCaller } = await adminClient
+    .from("disabled_users")
+    .select("user_id")
+    .eq("user_id", caller.id)
+    .maybeSingle();
+  if (disabledCaller) return jsonResponse({ error: "This account is disabled" }, 403);
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: "Invalid request body" }, 400);
+  }
+
+  if (body.action === "set-chapter-visibility") {
+    const chapterId = String(body.chapterId || "");
+    const visible = body.visible;
+    if (typeof visible !== "boolean") {
+      return jsonResponse({ error: "A chapter visibility status is required" }, 400);
+    }
+    if (chapterId === "1" || chapterId === "2") {
+      const { error } = visible
+        ? await adminClient.from("removed_chapters").delete().eq("chapter_id", chapterId)
+        : await adminClient.from("removed_chapters").upsert(
+            { chapter_id: chapterId, removed_by: caller.id },
+            { onConflict: "chapter_id" }
+          );
+      if (error) {
+        console.error("Could not update bundled chapter visibility:", error.message);
+        return jsonResponse({ error: "Could not update this chapter's visibility" }, 500);
+      }
+      return jsonResponse({ ok: true, chapterId, visible });
+    }
+    if (!/^extra-(?:[3-9]|[1-9][0-9])(?:-[a-f0-9]{20})?$/i.test(chapterId)) {
+      return jsonResponse({ error: "This chapter cannot be changed here" }, 400);
+    }
+    const { data: changedChapters, error: chapterError } = await adminClient
+      .from("chapter_catalog")
+      .update({ available: visible })
+      .eq("id", chapterId)
+      .select("id");
+    if (chapterError) {
+      console.error("Could not update uploaded chapter visibility:", chapterError.message);
+      return jsonResponse({ error: "Could not update this chapter's visibility" }, 500);
+    }
+    if (!changedChapters?.length) return jsonResponse({ error: "Uploaded chapter not found" }, 404);
+    return jsonResponse({ ok: true, chapterId, visible });
+  }
+
+, "i").test(chapter.file_path)) {
+      return jsonResponse({ error: "Chapter file path is invalid; deletion was stopped" }, 400);
+    }
+
+    const { error: fileError } = await adminClient.storage
+      .from("course-chapters")
+      .remove([chapter.file_path]);
+    if (fileError) {
+      console.error("Could not remove uploaded chapter file:", fileError.message);
+      return jsonResponse({ error: "Could not delete the lesson file; the chapter remains in the catalog" }, 500);
+    }
+
+    const { error: progressError } = await adminClient
+      .from("lesson_progress")
+      .delete()
+      .eq("chapter_id", chapterId);
+    if (progressError) {
+      console.error("Could not remove chapter progress:", progressError.message);
+      return jsonResponse({ error: "The lesson file was removed, but saved progress could not be cleaned up. Contact the site owner." }, 500);
+    }
+
+    const { error: catalogError } = await adminClient
+      .from("chapter_catalog")
+      .delete()
+      .eq("id", chapterId);
+    if (catalogError) {
+      console.error("Could not remove chapter catalog entry:", catalogError.message);
+      return jsonResponse({ error: "The lesson file was removed, but its catalog entry could not be deleted. Contact the site owner." }, 500);
+    }
+    return jsonResponse({ ok: true, chapterId });
   }
 
   if (body.action === "list-users") {
