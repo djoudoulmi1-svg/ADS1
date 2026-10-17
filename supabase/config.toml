@@ -4,4 +4,5 @@ verify_jwt = true
 [functions.admin-tools]
 verify_jwt = true
 
-
+[functions.telegram-study-assistant]
+verify_jwt = false
