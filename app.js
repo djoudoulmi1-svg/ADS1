@@ -34,7 +34,7 @@ const bundledChapters = [
     number: "01",
     title: "Introduction to Programming",
     available: true,
-    file: "CHAPTER1.html?v=dark-audit-2",
+    file: "CHAPTER1.html?v=dark-audit-3",
     sectionCount: "16 navigation topics",
     description: "The supplied lesson covers computers, problem solving, algorithms, programming languages, C, compilers, and development environments."
   },
