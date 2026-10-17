@@ -114,41 +114,7 @@ Deno.serve(async request => {
   }
 
   if (body.action === "delete-chapter") {
-    const chapterId = String(body.chapterId || "");
-    // Only uploaded chapters can be deleted. Bundled chapters 1 and 2 live in
-    // the repository and can only be hidden.
-    if (!/^extra-(?:[3-9]|[1-9][0-9])(?:-[a-f0-9]{20})?$/i.test(chapterId)) {
-      return jsonResponse({ error: "Only uploaded chapters can be deleted" }, 400);
-    }
-    const { data: chapterRow, error: lookupError } = await adminClient
-      .from("chapter_catalog")
-      .select("id, file_path")
-      .eq("id", chapterId)
-      .maybeSingle();
-    if (lookupError) {
-      console.error("Could not look up the chapter:", lookupError.message);
-      return jsonResponse({ error: "Could not delete this chapter" }, 500);
-    }
-    if (!chapterRow) return jsonResponse({ error: "Uploaded chapter not found" }, 404);
-
-    if (chapterRow.file_path) {
-      const { error: storageError } = await adminClient.storage
-        .from("course-chapters")
-        .remove([chapterRow.file_path]);
-      if (storageError) {
-        console.error("Could not remove the chapter file:", storageError.message);
-        return jsonResponse({ error: "Could not delete the chapter file" }, 500);
-      }
-    }
-    const { error: deleteError } = await adminClient
-      .from("chapter_catalog")
-      .delete()
-      .eq("id", chapterId);
-    if (deleteError) {
-      console.error("Could not delete the chapter record:", deleteError.message);
-      return jsonResponse({ error: "The file was removed, but the chapter record needs a retry" }, 500);
-    }
-    return jsonResponse({ ok: true, chapterId });
+    return jsonResponse({ error: "Chapters can only be hidden; permanent deletion is disabled" }, 403);
   }
 
   if (body.action === "list-users") {
