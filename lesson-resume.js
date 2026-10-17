@@ -7,7 +7,7 @@
   const readPosition = () => {
     const counter = document.querySelector("#counter");
     const buttons = document.querySelectorAll("#rail button");
-    const match = counter?.textContent.match(/(\\d+)\\s*\\//);
+    const match = counter?.textContent.match(/(\d+)\s*\//);
     if (match && buttons.length) return { index: Math.max(0, Number(match[1]) - 1) };
     const scroller = document.scrollingElement || document.documentElement;
     return { y: Math.max(0, scroller.scrollTop || window.scrollY || 0) };
