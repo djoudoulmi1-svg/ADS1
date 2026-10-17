@@ -23,6 +23,10 @@ The publishable/anon key is intended for browser use and is protected by the SQL
 
 After the base account schema, administrator schema, and Arena/email-privacy migration are installed, run `supabase/migrations/20261016_derived_progress_percent.sql` in the Supabase SQL Editor. It makes the database recalculate the displayed percentage from saved lesson and Arena progress, and removes browser permission to write that percentage directly. Keep this migration installed when updating the project.
 
+### Private student notes
+
+The **My notes** area uses `public.student_notes`, protected by row-level security so signed-in students can read and change only rows whose `user_id` matches their own account. For an existing Supabase project, run `supabase/migrations/20261017_student_notes.sql` once in the Supabase SQL Editor before using notes. New project setups can run the updated `supabase/schema.sql` as usual.
+
 ## 2. Create the private roster Sheet
 
 1. While signed in to the Gmail/Google account that should own the roster, create a blank Google Sheet.
