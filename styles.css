@@ -927,3 +927,7 @@ code { font-family: var(--mono); font-size: .92em; }
 @media (prefers-reduced-motion: reduce) {
   .plan-task { transition: none; }
 }
+
+.offline-status { padding: 5px 9px; color: var(--green); background: var(--paper); border: 1px solid var(--line); border-radius: 999px; font-size: 11px; white-space: nowrap; }
+.offline-status[data-online="false"] { color: #a65309; border-color: currentColor; }
+@media (max-width: 620px) { .offline-status { flex-basis: 100%; width: fit-content; } }
