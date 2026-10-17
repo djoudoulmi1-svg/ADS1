@@ -197,7 +197,7 @@ function bindLessonFrameResume(frame) {
     frame.dataset.resumeDocumentBound = "true";
     const readPosition = () => {
       const counter = doc.querySelector("#counter"), buttons = doc.querySelectorAll("#rail button");
-      const match = counter?.textContent.match(/(\\d+)\\s*\\//);
+      const match = counter?.textContent.match(/(\d+)\s*\//);
       if (match && buttons.length) return { index: Math.max(0, Number(match[1]) - 1) };
       const scroller = doc.scrollingElement || doc.documentElement;
       return { y: Math.max(0, scroller.scrollTop || doc.defaultView.scrollY || 0) };
