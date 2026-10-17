@@ -853,7 +853,8 @@ function render() {
   const arenaUI = window.ADS1ArenaUI;
   const glossaryUI = window.ADS1GlossaryUI;
   const focusUI = window.ADS1FocusTimerUI;
-  const view = page === "focus" && focusUI ? focusUI.view() : page === "glossary" && glossaryUI ? glossaryUI.view() : page === "chapters" ? home() : page === "chapter" ? chapterPage(query) : page === "lesson" ? lessonPage(query) : page === "account" ? accountPage() : page === "about" ? aboutPage() : page === "arena" && arenaUI ? arenaUI.view() : home();
+  const planUI = window.ADS1StudyPlanUI;
+  const view = page === "plan" && planUI ? planUI.view() : page === "focus" && focusUI ? focusUI.view() : page === "glossary" && glossaryUI ? glossaryUI.view() : page === "chapters" ? home() : page === "chapter" ? chapterPage(query) : page === "lesson" ? lessonPage(query) : page === "account" ? accountPage() : page === "about" ? aboutPage() : page === "arena" && arenaUI ? arenaUI.view() : home();
   app.innerHTML = view;
   document.querySelectorAll("iframe.lesson-frame").forEach(frame => {
     bindLessonFrameTheme(frame);
@@ -863,6 +864,7 @@ function render() {
   if (page === "arena" && arenaUI) arenaUI.bind();
   if (page === "glossary" && glossaryUI) glossaryUI.bind();
   if (page === "focus" && focusUI) focusUI.bind();
+  if (page === "plan" && planUI) planUI.bind();
   nav.classList.remove("open");
   menuToggle.setAttribute("aria-expanded", "false");
   if (page === "lesson") {
