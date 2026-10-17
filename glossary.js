@@ -104,6 +104,7 @@
     bind();
   }
 
+  window.ADS1GlossaryUI = { view: page, bind };
   window.addEventListener("hashchange", show);
   show();
 })();
