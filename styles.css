@@ -688,3 +688,8 @@ code { font-family: var(--mono); font-size: .92em; }
   .learning-step { transition:none; }
   .learning-step:hover { transform:none; }
 }
+
+:root[data-theme="dark"] .chapter-card .card-action,
+:root[data-theme="dark"] .learning-guide .eyebrow,
+:root[data-theme="dark"] .chapters-section .eyebrow { color:#83c4ff; }
+:root[data-theme="dark"] .chapter-number { color:#a9d5ff; }
