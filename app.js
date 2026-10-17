@@ -78,7 +78,7 @@ function setTheme(theme) {
   syncAllLessonFrameThemes();
 }
 
-function withLessonThemeBridge(html) {
+function withLessonThemeBridge(html, chapterId) {
   const source = String(html || "");
   const initialTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
   const themedSource = source.replace(/<html\b([^>]*)>/i, (_, attributes) => {
@@ -86,6 +86,8 @@ function withLessonThemeBridge(html) {
     return `<html${cleaned} data-ads1-theme="${initialTheme}">`;
   });
   const bridge = "<style id=\"ads1-theme-bridge-style\">html{color-scheme:light}html[data-ads1-theme=\"dark\"]{color-scheme:dark!important;background:#091321!important;color:#e7effb!important}html[data-ads1-theme=\"dark\"] body{background:#091321!important;color:#e7effb!important}html[data-ads1-theme=\"dark\"] body *{color:#e7effb!important;border-color:#33475f!important}html[data-ads1-theme=\"dark\"] body button,html[data-ads1-theme=\"dark\"] body input,html[data-ads1-theme=\"dark\"] body select,html[data-ads1-theme=\"dark\"] body textarea{background-color:#172a40!important;color:#e7effb!important}html[data-ads1-theme=\"dark\"] body a{color:#83c4ff!important}</style><style id=\"ads1-mobile-navigation\">@media(max-width:850px){.sidebar{position:sticky!important;top:72px!important;height:auto!important;max-height:94px!important;display:flex!important;overflow-x:auto!important;overflow-y:hidden!important;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:thin;gap:7px!important;padding:8px 10px!important;z-index:9!important}.navlink{flex:0 0 150px!important;min-height:58px;white-space:normal!important;scroll-snap-align:center}.side-label{display:none!important}}@media(max-width:800px){.rail{position:sticky!important;top:76px!important;height:auto!important;max-height:78px!important;display:flex!important;align-items:center!important;gap:8px!important;overflow-x:auto!important;overflow-y:hidden!important;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:thin;padding:8px 12px!important;z-index:8!important}.rail #rail,.rail>div:not(.rail-title){display:flex!important;align-items:center!important;gap:8px!important;min-width:max-content}.rail button{flex:0 0 auto!important;width:auto!important;min-width:48px!important;min-height:44px!important;max-width:180px!important;justify-content:flex-start!important;scroll-snap-align:center}.rail button span:last-child{display:inline-block!important;max-width:105px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rail-title{display:none!important}.rail button:focus-visible,.navlink:focus-visible{outline:3px solid #20b8e6!important;outline-offset:2px}}</style><script>(() => {\n  const original = new WeakMap();\n  const properties = [\"background-color\", \"color\", \"border-top-color\", \"border-right-color\", \"border-bottom-color\", \"border-left-color\"];\n  function save(el) {\n    if (!original.has(el)) {\n      const values = {};\n      for (const property of properties) values[property] = [el.style.getPropertyValue(property), el.style.getPropertyPriority(property)];\n      original.set(el, values);\n    }\n  }\n  function restore(el) {\n    const values = original.get(el);\n    if (!values) return;\n    for (const property of properties) {\n      const [value, priority] = values[property];\n      if (value) el.style.setProperty(property, value, priority);\n      else el.style.removeProperty(property);\n    }\n  }\n  function rgba(value) {\n    const values = String(value).match(/[\d.]+/g);\n    if (!values || values.length < 3) return null;\n    return { r: +values[0], g: +values[1], b: +values[2], a: values.length > 3 ? +values[3] : 1 };\n  }\n  function luminance(color) {\n    return (0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b) / 255;\n  }\n  function nearestBackground(el) {\n    for (let node = el; node; node = node.parentElement) {\n      const color = rgba(getComputedStyle(node).backgroundColor);\n      if (color && color.a > 0.35) return color;\n    }\n    return { r: 9, g: 19, b: 33, a: 1 };\n  }\n  function apply(theme) {\n    const dark = theme === \"dark\";\n    const root = document.documentElement;\n    root.dataset.ads1Theme = dark ? \"dark\" : \"light\";\n    root.style.colorScheme = dark ? \"dark\" : \"light\";\n    const nodes = [root, ...document.querySelectorAll(\"body *\")];\n    for (const el of nodes) {\n      save(el);\n      restore(el);\n      if (!dark) continue;\n      const background = rgba(getComputedStyle(el).backgroundColor);\n      if (background && background.a > 0.35 && luminance(background) > 0.78) {\n        el.style.setProperty(\"background-color\", el === root || el === document.body ? \"#091321\" : \"#101e30\", \"important\");\n      }\n    }\n    if (!dark) return;\n    for (const el of nodes) {\n      const background = nearestBackground(el);\n      const text = rgba(getComputedStyle(el).color);\n      if (text && luminance(background) < 0.3 && luminance(text) < 0.45) {\n        el.style.setProperty(\"color\", el.tagName === \"A\" ? \"#83c4ff\" : \"#e7effb\", \"important\");\n      }\n      for (const side of [\"top\", \"right\", \"bottom\", \"left\"]) {\n        const property = \"border-\" + side + \"-color\";\n        const border = rgba(getComputedStyle(el).getPropertyValue(property));\n        if (border && border.a > 0.35 && luminance(border) > 0.72) el.style.setProperty(property, \"#33475f\", \"important\");\n      }\n    }\n  }\n  window.addEventListener(\"message\", event => {\n    if (event.source !== parent || !event.data || event.data.type !== \"ADS1_THEME\") return;\n    apply(event.data.theme);\n  });\n  const observer = new MutationObserver(records => { if (!records.some(record => record.type === \"childList\" || record.attributeName === \"class\")) return; requestAnimationFrame(() => apply(document.documentElement.dataset.ads1Theme)); });\n  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: [\"class\"] });\n  const currentTheme = document.documentElement.dataset.ads1Theme || \"light\";\n  apply(currentTheme);\n  document.addEventListener(\"DOMContentLoaded\", () => apply(document.documentElement.dataset.ads1Theme || \"light\"), { once: true });\n  window.addEventListener(\"load\", () => apply(document.documentElement.dataset.ads1Theme || \"light\"), { once: true });\n})();</script>";
+  const resumeBridge = `<script src="https://djoudoulmi1-svg.github.io/ADS1/lesson-resume.js?chapter=${encodeURIComponent(String(chapterId || ""))}"></script>`;
+  bridge += resumeBridge;
   const headEnd = themedSource.search(/<\/head\s*>/i);
   if (headEnd >= 0) return themedSource.slice(0, headEnd) + bridge + themedSource.slice(headEnd);
   const bodyStart = themedSource.match(/<body\b[^>]*>/i);
@@ -166,6 +168,57 @@ function syncLessonFrameTheme(frame) {
   frame.contentWindow.postMessage({ type: "ADS1_THEME", theme }, "*");
 }
 
+const lessonResumeKey = chapterId => "ads1.lesson.resume.v1." + String(chapterId || "");
+function getSavedLessonPosition(chapterId) { try { return JSON.parse(localStorage.getItem(lessonResumeKey(chapterId)) || "null"); } catch { return null; } }
+function saveLessonPosition(chapterId, position) { try { localStorage.setItem(lessonResumeKey(chapterId), JSON.stringify(position)); } catch {} }
+function bindLessonFrameResume(frame) {
+  if (!frame || frame.dataset.resumeBound) return;
+  frame.dataset.resumeBound = "true";
+  const chapterId = frame.dataset.chapterId;
+  if (!chapterId) return;
+  if (frame.hasAttribute("data-remote-src")) {
+    if (!window.ads1ResumeMessageBound) {
+      window.ads1ResumeMessageBound = true;
+      window.addEventListener("message", event => {
+        const message = event.data;
+        if (!message || !["ADS1_RESUME_READY", "ADS1_RESUME_POSITION"].includes(message.type)) return;
+        const matchingFrame = [...document.querySelectorAll("iframe.lesson-frame")].find(item => item.contentWindow === event.source && item.dataset.chapterId === message.chapterId);
+        if (!matchingFrame) return;
+        if (message.type === "ADS1_RESUME_READY") matchingFrame.contentWindow.postMessage({ type: "ADS1_RESUME_RESTORE", chapterId: message.chapterId, position: getSavedLessonPosition(message.chapterId) }, "*");
+        else if (message.position && (Number.isFinite(message.position.y) || Number.isInteger(message.position.index))) saveLessonPosition(message.chapterId, message.position);
+      });
+    }
+    return;
+  }
+  const bindDocument = () => {
+    let doc;
+    try { doc = frame.contentDocument; } catch { return; }
+    if (!doc?.documentElement || frame.dataset.resumeDocumentBound) return;
+    frame.dataset.resumeDocumentBound = "true";
+    const readPosition = () => {
+      const counter = doc.querySelector("#counter"), buttons = doc.querySelectorAll("#rail button");
+      const match = counter?.textContent.match(/(\\d+)\\s*\\//);
+      if (match && buttons.length) return { index: Math.max(0, Number(match[1]) - 1) };
+      const scroller = doc.scrollingElement || doc.documentElement;
+      return { y: Math.max(0, scroller.scrollTop || doc.defaultView.scrollY || 0) };
+    };
+    const restore = () => {
+      const position = getSavedLessonPosition(chapterId);
+      if (!position) return;
+      const buttons = doc.querySelectorAll("#rail button");
+      if (Number.isInteger(position.index) && buttons[position.index]) buttons[position.index].click();
+      else if (Number.isFinite(position.y)) doc.defaultView.scrollTo(0, position.y);
+    };
+    let saveTimer;
+    const save = () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => saveLessonPosition(chapterId, readPosition()), 180); };
+    doc.defaultView.addEventListener("scroll", save, { passive: true });
+    const counter = doc.querySelector("#counter");
+    if (counter) new MutationObserver(save).observe(counter, { childList: true, characterData: true, subtree: true });
+    restore();
+  };
+  frame.addEventListener("load", bindDocument);
+  if (frame.contentDocument?.readyState === "complete") bindDocument();
+}
 function bindLessonFrameTheme(frame) {
   if (!frame || frame.dataset.themeSyncBound) return;
   frame.dataset.themeSyncBound = "true";
@@ -174,7 +227,7 @@ function bindLessonFrameTheme(frame) {
 }
 
 function syncAllLessonFrameThemes() {
-  document.querySelectorAll("iframe.lesson-frame, #chapter-upload-preview").forEach(syncLessonFrameTheme);
+  document.querySelectorAll("iframe.lesson-frame, #chapter-upload-preview").forEach(frame => { syncLessonFrameTheme(frame); if (frame.matches(".lesson-frame")) bindLessonFrameResume(frame); });
 }
 
 function route() {
@@ -285,7 +338,7 @@ function lessonPage(id) {
   const chapter = chapters.find(item => item.id === id && item.available);
   if (!chapter) return home();
   return `<div class="lesson-toolbar"><a class="button secondary" href="#chapter/${escapeHTML(chapter.id)}"><span aria-hidden="true">←</span> Back to chapter</a><div class="lesson-toolbar-title"><strong>${escapeHTML(chapter.title)}</strong><span>Chapter ${escapeHTML(chapter.number)} · University of Ouargla</span></div><button class="button secondary" id="mark-complete" data-chapter="${escapeHTML(chapter.id)}" type="button" ${isChapterComplete(chapter.id) ? "disabled" : ""}>${isChapterComplete(chapter.id) ? "Completed" : "Mark complete"}</button><button class="button secondary" id="reading-mode-toggle" type="button" aria-pressed="false">Focus reading</button></div>
-  <iframe class="lesson-frame" ${chapter.remote ? `data-remote-src="${escapeHTML(chapter.file)}"` : `src="${escapeHTML(chapter.file)}"`} title="Chapter ${escapeHTML(chapter.number)}: ${escapeHTML(chapter.title)} lesson" allow="fullscreen"${chapter.remote ? ' sandbox="allow-scripts allow-forms"' : ""}></iframe>`;
+  <iframe class="lesson-frame" data-chapter-id="${escapeHTML(chapter.id)}" ${chapter.remote ? `data-remote-src="${escapeHTML(chapter.file)}"` : `src="${escapeHTML(chapter.file)}"`} title="Chapter ${escapeHTML(chapter.number)}: ${escapeHTML(chapter.title)} lesson" allow="fullscreen"${chapter.remote ? ' sandbox="allow-scripts allow-forms"' : ""}></iframe>`;
 }
 
 // Supabase Storage serves uploaded .html files as text/plain, so loading the
@@ -295,13 +348,14 @@ async function loadRemoteLesson() {
   const frame = document.querySelector("iframe.lesson-frame[data-remote-src]");
   if (!frame) return;
   bindLessonFrameTheme(frame);
+  bindLessonFrameResume(frame);
   const url = frame.dataset.remoteSrc;
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Lesson request failed (${response.status})`);
     const html = await response.text();
     if (!frame.isConnected) return;
-    frame.srcdoc = withLessonThemeBridge(html);
+    frame.srcdoc = withLessonThemeBridge(html, frame.dataset.chapterId);
   } catch (error) {
     if (!frame.isConnected) return;
     frame.srcdoc = `<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:2rem"><p>This lesson could not be loaded. Please refresh the page and try again.</p></body>`;
