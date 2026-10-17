@@ -10,6 +10,7 @@ type Chapter = {
   description?: string;
   file?: string;
   file_path?: string;
+  available?: boolean;
 };
 
 function json(body: unknown, status = 200) {
