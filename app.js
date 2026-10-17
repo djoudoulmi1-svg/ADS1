@@ -628,7 +628,6 @@ function adminPanel() {
       <div class="admin-user-identity"><strong>Chapter ${escapeHTML(chapter.number)} · ${escapeHTML(chapter.title)}</strong><span>${escapeHTML(chapter.available ? "Visible to students" : "Hidden from students")}</span></div>
       <div class="admin-chapter-actions">
         <button class="button secondary admin-user-action admin-chapter-visibility" type="button" data-chapter-id="${escapeHTML(chapter.id)}" data-visible="${chapter.available}">${chapter.available ? "Hide chapter" : "Show chapter"}</button>
-        ${chapter.remote ? `<button class="button secondary admin-user-action admin-chapter-delete" type="button" data-delete-chapter-id="${escapeHTML(chapter.id)}">Delete chapter</button>` : ""}
       </div>
     </div>`).join("");
   const rows = adminUsers.map(user => {
@@ -719,32 +718,7 @@ function bindAdminForms() {
   document.querySelector("#admin-chapters")?.addEventListener("click", handleAdminChapterAction);
 }
 
-async function deleteAdminChapter(button) {
-  const chapter = adminChapters.find(item => item.id === button.dataset.deleteChapterId);
-  if (!chapter || !chapter.remote) return;
-  if (!window.confirm(`Permanently delete Chapter ${chapter.number} · ${chapter.title}? This removes the uploaded lesson and cannot be undone. Use "Hide chapter" if you only want to hide it from students.`)) return;
-
-  button.disabled = true;
-  setAdminNotice("Deleting chapter…");
-  const { data, error } = await backendClient.functions.invoke("admin-tools", {
-    body: { action: "delete-chapter", chapterId: chapter.id }
-  });
-  if (error || !data?.ok) {
-    setAdminNotice(data?.error || error?.message || "Could not delete this chapter.", "error");
-    button.disabled = false;
-    return;
-  }
-  await loadChapterCatalog();
-  adminNotice = `Chapter ${chapter.number} was deleted.`;
-  render();
-}
-
 async function handleAdminChapterAction(event) {
-  const deleteButton = event.target.closest("button[data-delete-chapter-id]");
-  if (deleteButton) {
-    if (currentIsAdmin) await deleteAdminChapter(deleteButton);
-    return;
-  }
   const button = event.target.closest("button[data-chapter-id]");
   if (!button || !currentIsAdmin) return;
   const chapter = adminChapters.find(item => item.id === button.dataset.chapterId);
