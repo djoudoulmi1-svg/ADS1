@@ -764,3 +764,23 @@ code { font-family: var(--mono); font-size: .92em; }
 :root[data-theme="dark"] .eyebrow,:root[data-theme="dark"] .card-action { color:var(--accessible-link); }
 :where(h1,h2,h3,p,li,label,button,a) { text-underline-offset:3px; }
 :where(h1,h2,h3,[id]) { scroll-margin-top:92px; }
+
+
+/* Mobile usability: comfortable header controls and a two-row lesson toolbar on narrow phones. */
+@media (max-width:760px) {
+  .site-header { gap:10px; padding-inline:12px; }
+  .menu-toggle,.theme-toggle { min-width:44px; min-height:44px; }
+  .lesson-toolbar { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:8px; padding:10px 12px; }
+  .lesson-toolbar .button { min-height:44px; padding-inline:10px; font-size:12px; }
+  .lesson-toolbar-title strong { font-size:13px; }
+  .lesson-toolbar-title span { font-size:12px; }
+  .lesson-frame { height:calc(100svh - 132px); min-height:440px; }
+}
+@media (max-width:380px) {
+  .site-header { gap:7px; padding-inline:12px; }
+  .university-logo { width:clamp(64px,21vw,76px); }
+  .lesson-toolbar { grid-template-columns:minmax(0,1fr) auto; gap:7px; padding:9px 10px; }
+  .lesson-toolbar-title { grid-column:1/-1; grid-row:2; text-align:center; }
+  .lesson-toolbar > .button:first-child { grid-column:1; grid-row:1; justify-self:start; }
+  .lesson-toolbar > .button:last-child { grid-column:2; grid-row:1; justify-self:end; }
+}
