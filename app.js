@@ -195,11 +195,11 @@ function chapterCard(chapter) {
   const description = chapter.description || "Course lesson supplied by the course team.";
   const searchText = (chapter.title + " " + description).toLowerCase();
   const state = completed ? "completed" : inProgress ? "in-progress" : "not-started";
-  return \`<article class="chapter-card ${chapter.available ? "available" : "unavailable"}" data-state="${state}" data-search="${escapeHTML(searchText)}">
+  return `<article class="chapter-card ${chapter.available ? "available" : "unavailable"}" data-state="${state}" data-search="${escapeHTML(searchText)}">
     <div class="card-top"><span class="chapter-number">CHAPTER ${escapeHTML(chapter.number)}</span><span class="status ${statusClass}">${status}</span></div>
     <h3>${escapeHTML(chapter.title)}</h3><p>${escapeHTML(description)}</p>
-    ${chapter.available ? \`<a class="card-action" href="#chapter/${escapeHTML(chapter.id)}">${action}</a>\` : \`<span class="card-action">${action}</span>\`}
-  </article>\`;
+    ${chapter.available ? `<a class="card-action" href="#chapter/${escapeHTML(chapter.id)}">${action}</a>` : `<span class="card-action">${action}</span>`}
+  </article>`;
 }
 
 function waitingChaptersCard() {
@@ -761,7 +761,7 @@ function filterChapters(event) {
   });
   const grid = document.querySelector("#chapter-grid");
   let empty = grid.querySelector(".empty-state");
-  if (!visible && !empty) grid.insertAdjacentHTML("beforeend", \`<div class="empty-state">No chapters match this search and filter.</div>\`);
+  if (!visible && !empty) grid.insertAdjacentHTML("beforeend", `<div class="empty-state">No chapters match this search and filter.</div>`);
   if (visible && empty) empty.remove();
 }
 
