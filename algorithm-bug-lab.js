@@ -43,6 +43,43 @@
       why: "A rectangle's area is the product of its length and width, not their sum.",
       result: "The area is 24 square units."
     }
+    ,
+    {
+      title: "Calculate a factorial",
+      context: "Input: n = 4",
+      lines: ["Read(n)", "result ← 0", "For i ← 1 to n", "  result ← result * i", "End For", "Print(result)"],
+      bug: 1, fix: "result ← 1",
+      hint: "Multiplication keeps a value unchanged when multiplied by which starting number?",
+      why: "A factorial multiplies the numbers from 1 to n. Starting at zero makes every later product stay zero.",
+      result: "For n = 4, the factorial is 24."
+    },
+    {
+      title: "Count values above a limit",
+      context: "Values: [3, 8, 2, 10], limit = 5",
+      lines: ["count ← 0", "For i ← 1 to 4", "  If values[i] > 5 Then", "    count ← i", "  End If", "End For", "Print(count)"],
+      bug: 3, fix: "count ← count + 1",
+      hint: "The count should increase by one each time a value matches, regardless of its position.",
+      why: "Assigning i stores the current position, not the number of matches found so far.",
+      result: "Two values are above 5, so the count is 2."
+    },
+    {
+      title: "Sum an array",
+      context: "Values: [4, 6, 3], n = 3",
+      lines: ["sum ← 0", "For i ← 1 to n - 1", "  sum ← sum + values[i]", "End For", "Print(sum)"],
+      bug: 1, fix: "For i ← 1 to n",
+      hint: "Does the loop reach the final element when it stops at n - 1?",
+      why: "The array has n elements, so the loop must include index n to add every value.",
+      result: "The complete array sum is 13."
+    },
+    {
+      title: "Find the first matching value",
+      context: "Values: [7, 2, 9, 2], target = 2",
+      lines: ["position ← -1", "For i ← 1 to 4", "  If values[i] = target Then", "    position ← i", "  End If", "End For", "Print(position)"],
+      bug: 5, fix: "Exit For",
+      hint: "After finding the target once, should the search continue if you need the first match?",
+      why: "The loop continues and overwrites position when it finds another match. Stop after the first match.",
+      result: "The first matching value is at position 2."
+    }
   ];
   const state = { index: 0, phase: "identify", fix: "", feedback: "", hint: false, solved: new Set() };
   const active = () => location.hash.replace(/^#/, "").split("/")[0] === "arena" &&
