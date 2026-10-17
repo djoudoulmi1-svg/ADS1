@@ -627,7 +627,8 @@ function adminPanel() {
     <div class="admin-chapter-row">
       <div class="admin-user-identity"><strong>Chapter ${escapeHTML(chapter.number)} · ${escapeHTML(chapter.title)}</strong><span>${escapeHTML(chapter.available ? "Visible to students" : "Hidden from students")}</span></div>
       <div class="admin-chapter-actions">
-        <button class="button secondary admin-user-action admin-chapter-visibility" type="button" data-chapter-id="${escapeHTML(chapter.id)}" data-visible="${chapter.available}">${chapter.available ? "Hide chapter" : "Show chapter"}</button>
+        <button class="button secondary admin-user-action admin-chapter-visibility" type="button" data-chapter-id="${escapeHTML(chapter.id)}" data-action="visibility" data-visible="${chapter.available}">${chapter.available ? "Hide chapter" : "Show chapter"}</button>
+        ${chapter.remote ? `<button class="button secondary admin-user-action admin-chapter-delete" type="button" data-chapter-id="${escapeHTML(chapter.id)}" data-action="delete">Delete permanently</button>` : ""}
       </div>
     </div>`).join("");
   const rows = adminUsers.map(user => {
@@ -660,7 +661,7 @@ function adminPanel() {
       <iframe class="chapter-upload-preview" id="chapter-upload-preview" title="Rendered chapter preview" sandbox="allow-scripts allow-forms" hidden></iframe>
       <button class="button" type="submit">Upload chapter</button>
     </form>
-    <div class="admin-chapters-heading"><h3>Chapter visibility</h3></div>
+    <div class="admin-chapters-heading"><h3>Chapter management</h3></div><p class="admin-help">Hide a chapter to keep it saved for later, or permanently delete an uploaded chapter. The original chapters can be hidden or shown but are not deleted from the site files.</p>
     <div class="admin-chapters" id="admin-chapters">${chapterRows || `<p class="admin-help">No chapters found.</p>`}</div>
     <p class="account-notice" id="admin-notice" aria-live="polite">${escapeHTML(adminNotice)}</p>
     <div class="admin-users-heading"><h3>Student accounts</h3><button class="button secondary" id="refresh-admin-users" type="button">Refresh list</button></div>
@@ -723,8 +724,28 @@ async function handleAdminChapterAction(event) {
   if (!button || !currentIsAdmin) return;
   const chapter = adminChapters.find(item => item.id === button.dataset.chapterId);
   if (!chapter) return;
-  const visible = button.dataset.visible !== "true";
 
+  if (button.dataset.action === "delete") {
+    if (!chapter.remote) return;
+    const confirmed = window.confirm(`Permanently delete Chapter ${chapter.number} · ${chapter.title}? Its uploaded lesson file and saved chapter progress will be removed. This cannot be undone.`);
+    if (!confirmed) return;
+    button.disabled = true;
+    setAdminNotice("Deleting chapter permanently…");
+    const { data, error } = await backendClient.functions.invoke("admin-tools", {
+      body: { action: "delete-chapter", chapterId: chapter.id }
+    });
+    if (error || !data?.ok) {
+      setAdminNotice(data?.error || error?.message || "Could not delete this chapter.", "error");
+      button.disabled = false;
+      return;
+    }
+    adminNotice = `Chapter ${chapter.number} was permanently deleted.`;
+    await loadChapterCatalog();
+    render();
+    return;
+  }
+
+  const visible = button.dataset.visible !== "true";
   button.disabled = true;
   setAdminNotice(visible ? "Showing chapter…" : "Hiding chapter…");
   const { data, error } = await backendClient.functions.invoke("admin-tools", {
