@@ -225,7 +225,7 @@ function home() {
       <h1>Learn algorithms.<br><em>One step at a time.</em></h1>
       <p>Study your ADS1 lessons, explore worked examples, practise algorithm tracing, and test your understanding through interactive activities.</p>
       <div class="hero-actions">
-        ${(() => { const last = chapters.find(item => item.available && String(item.id) === getLastOpenedChapterId()); return last ? \`<a class="button" href="#lesson/${escapeHTML(last.id)}">Continue: ${escapeHTML(last.title)} <span class="arrow" aria-hidden="true">→</span></a>\` : \`<a class="button" href="#chapters">Explore chapters <span class="arrow" aria-hidden="true">→</span></a>\`; })()}
+        ${(() => { const last = chapters.find(item => item.available && String(item.id) === getLastOpenedChapterId()); return last ? `<a class="button" href="#lesson/${escapeHTML(last.id)}">Continue: ${escapeHTML(last.title)} <span class="arrow" aria-hidden="true">→</span></a>` : `<a class="button" href="#chapters">Explore chapters <span class="arrow" aria-hidden="true">→</span></a>`; })()}
         ${arenaUI ? `<a class="button secondary" href="#arena">Enter the Arena <span class="arrow" aria-hidden="true">→</span></a>` : ""}
       </div>
     </div>
