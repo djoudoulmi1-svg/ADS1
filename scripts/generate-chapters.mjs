@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const files = await readdir(root);
+const assetVersion = process.env.GITHUB_SHA?.slice(0, 12) || "local";
 const chapterFiles = files
   .map(file => ({ file, match: /^chapter(\d+)\.html$/i.exec(file) }))
   .filter(entry => entry.match)
@@ -25,7 +26,7 @@ const chapters = await Promise.all(chapterFiles.map(async ({ file, match }) => {
     number: String(number).padStart(2, "0"),
     title,
     available: true,
-    file,
+    file: `${file}?v=${assetVersion}`,
     sectionCount: readMeta("hub-sections") || "Course lesson",
     description: readMeta("hub-description")
   };
