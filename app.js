@@ -466,10 +466,21 @@ function accountPage() {
   }
 
   if (currentSession && currentProfile) {
-    const total = chapters.filter(chapter => chapter.available).length;
+    const availableChapters = chapters.filter(chapter => chapter.available);
+    const total = availableChapters.length;
+    const completedLessons = completedAvailableChapterCount();
     const percent = Number(currentProfile.progress_percent) || 0;
-    const arenaSummary = window.ADS1ArenaUI ? window.ADS1ArenaUI.summaryHTML() : "";
-    const lessonRows = chapters.filter(chapter => chapter.available).map(chapter => {
+    const arenaUI = window.ADS1ArenaUI;
+    const arenaDone = arenaUI && typeof arenaUI.completedCount === "function" ? arenaUI.completedCount() : 0;
+    const arenaTotal = arenaUI && Number(arenaUI.levelCount) ? Number(arenaUI.levelCount) : 0;
+    const arenaSummary = arenaUI ? arenaUI.summaryHTML() : "";
+    const nextChapter = availableChapters.find(chapter => !chapterProgress.has(String(chapter.id)));
+    const nextStep = nextChapter
+      ? `<section class="progress-next-step" aria-labelledby="next-step-title"><div><span class="eyebrow">Suggested next step</span><h3 id="next-step-title">Continue with ${escapeHTML(nextChapter.title)}</h3><p>${completedLessons} of ${total} available chapters complete. Pick up with this chapter and mark it complete from the lesson toolbar.</p></div><a class="button" href="#chapter/${encodeURIComponent(nextChapter.id)}">Continue chapter <span aria-hidden="true">→</span></a></section>`
+      : arenaDone < arenaTotal
+        ? `<section class="progress-next-step" aria-labelledby="next-step-title"><div><span class="eyebrow">Suggested next step</span><h3 id="next-step-title">Practise in Algo Arena</h3><p>All ${total} available chapters are complete. Clear another practice level to build your course progress.</p></div><a class="button" href="#arena">Open the Arena <span aria-hidden="true">→</span></a></section>`
+        : `<section class="progress-next-step complete" aria-labelledby="next-step-title"><div><span class="eyebrow">Suggested next step</span><h3 id="next-step-title">All available work is complete</h3><p>You have finished every available chapter and Arena level. Try a Smart Review to keep the key ideas fresh.</p></div><a class="button secondary" href="#arena/review">Try Smart Review <span aria-hidden="true">→</span></a></section>`;
+    const lessonRows = availableChapters.map(chapter => {
       const completed = chapterProgress.has(String(chapter.id));
       return `<div class="account-lesson"><span>${escapeHTML(chapter.title)}</span><strong class="${completed ? "lesson-done" : "lesson-pending"}">${completed ? "Completed" : "Not completed"}</strong></div>`;
     }).join("");
@@ -480,6 +491,12 @@ function accountPage() {
       <section class="progress-panel" aria-labelledby="progress-heading">
         <div class="progress-heading"><div><span class="eyebrow">Course progress</span><h2 id="progress-heading">${percent}% complete</h2></div><span class="progress-count">${completedAvailableChapterCount()} of ${total} chapters</span></div>
         <progress class="course-progress" value="${percent}" max="100" aria-label="Course completion ${percent} percent"></progress>
+        <div class="progress-metrics" aria-label="Progress breakdown">
+          <div class="progress-metric"><span>Chapters</span><strong>${completedLessons} / ${total}</strong><small>completed</small></div>
+          <div class="progress-metric"><span>Algo Arena</span><strong>${arenaDone} / ${arenaTotal}</strong><small>levels cleared</small></div>
+        </div>
+        ${nextStep}
+        <h3 class="progress-checklist-title">Chapter checklist</h3>
         <div class="account-lesson-list">${lessonRows}</div>
         ${arenaSummary}
       </section>
