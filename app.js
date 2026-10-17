@@ -30,7 +30,7 @@ const bundledChapters = [
     number: "01",
     title: "Introduction to Programming",
     available: true,
-    file: "CHAPTER1.html",
+    file: "CHAPTER1.html?v=mobile-nav-1",
     sectionCount: "16 navigation topics",
     description: "The supplied lesson covers computers, problem solving, algorithms, programming languages, C, compilers, and development environments."
   },
@@ -39,7 +39,7 @@ const bundledChapters = [
     number: "02",
     title: "Sequential Algorithm",
     available: true,
-    file: "CHAPTER2.html",
+    file: "CHAPTER2.html?v=mobile-nav-1",
     sectionCount: "26 presentation sections",
     description: "Explore sequential algorithms, pseudocode, variables, worked examples, and interactive tracing challenges."
   },
