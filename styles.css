@@ -630,3 +630,24 @@ code { font-family: var(--mono); font-size: .92em; }
   .account-welcome, .progress-heading, .leaderboard-heading { gap:12px; }
   .leaderboard-heading .button { padding:0 12px; font-size:12px; }
 }
+
+/* Subtle page and completion motion */
+.fade-in { animation: arrive .42s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes arrive {
+  from { opacity:0; transform:translateY(9px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.completion-celebration { animation: completion-pop .58s cubic-bezier(.2,.8,.2,1) both; }
+.completion-check { display:inline-block; margin-right:5px; animation: completion-check-in .45s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes completion-pop {
+  0% { transform:scale(1); box-shadow:0 0 0 0 rgba(19,128,95,0); }
+  45% { transform:scale(1.045); box-shadow:0 0 0 6px rgba(19,128,95,.12); }
+  100% { transform:scale(1); box-shadow:0 0 0 0 rgba(19,128,95,0); }
+}
+@keyframes completion-check-in {
+  from { opacity:0; transform:scale(.45) rotate(-25deg); }
+  to { opacity:1; transform:scale(1) rotate(0); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .fade-in, .completion-celebration, .completion-check { animation:none!important; }
+}
