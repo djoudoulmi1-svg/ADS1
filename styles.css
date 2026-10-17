@@ -897,3 +897,33 @@ code { font-family: var(--mono); font-size: .92em; }
   .focus-footer { align-items: flex-start; flex-direction: column; }
   .focus-clock { width: min(62vw, 220px); }
 }
+
+/* Private weekly study checklist */
+.plan-intro { max-width: 720px; color: var(--muted); line-height: 1.7; }
+.plan-summary { display: grid; gap: 12px; margin: 24px 0 18px; padding: 20px; background: var(--white); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+.plan-summary-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.plan-summary-head > div { display: grid; gap: 4px; }
+.plan-summary-head strong { color: var(--ink); font: 700 18px "Manrope", sans-serif; }
+.plan-summary-head small, .plan-privacy { color: var(--muted); }
+.plan-summary-head > span { color: var(--blue); font: 800 24px "Manrope", sans-serif; }
+.plan-summary progress { width: 100%; height: 12px; accent-color: var(--green); }
+.plan-privacy { font-size: 12px; }
+.plan-task-list { display: grid; gap: 10px; padding-bottom: 24px; }
+.plan-task { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 15px 18px; background: var(--white); border: 1px solid var(--line); border-radius: 9px; transition: border-color .18s ease, background .18s ease; }
+.plan-task.complete { border-color: var(--green); background: color-mix(in srgb, var(--green) 7%, var(--white)); }
+.plan-check { display: flex; min-width: 0; align-items: center; gap: 13px; cursor: pointer; }
+.plan-check input { flex: 0 0 auto; width: 20px; height: 20px; accent-color: var(--green); }
+.plan-step { display: grid; flex: 0 0 38px; width: 38px; height: 38px; place-items: center; color: var(--blue); background: var(--paper); border-radius: 8px; font-weight: 800; }
+.plan-task-copy { display: grid; min-width: 0; gap: 3px; }
+.plan-task-copy strong { color: var(--ink); }
+.plan-task-copy small { color: var(--muted); line-height: 1.5; }
+.plan-task-link { flex: 0 0 auto; color: var(--blue); font-size: 13px; font-weight: 700; }
+.study-plan-page :focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+@media (max-width: 620px) {
+  .plan-task { align-items: flex-start; flex-direction: column; }
+  .plan-task-link { margin-left: 33px; }
+  .plan-summary { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plan-task { transition: none; }
+}
