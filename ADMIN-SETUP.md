@@ -1,6 +1,6 @@
 # Site Administration
 
-The site has one protected owner account. The owner alone can grant or revoke administrator access. Appointed administrators can upload or remove chapters and disable or reactivate student accounts, but they cannot appoint administrators or disable the owner. The website never receives a service-role key.
+The site has one protected owner account. The owner alone can grant or revoke administrator access. Appointed administrators can upload chapters, hide or restore them, and disable or reactivate student accounts. Permanent chapter deletion is disabled; only the owner can appoint or remove administrators. The website never receives a service-role key.
 
 ## Enable the administrator features
 
@@ -32,9 +32,9 @@ $$;
 
 5. Publish the website. Sign in as the owner and open **Account**. Use the account list to grant or revoke administrator access. The selected person's account must be registered, email-confirmed, and active first.
 
-The browser can upload one `.html` lesson file per chapter, numbered 3–99, up to 5 MB. Keep each lesson self-contained, including its styles and images. Supabase Storage serves visible uploaded lessons publicly for students to read, while only approved administrators can upload them or change their visibility. The Account page lists chapters with **Hide chapter** or **Show chapter** controls. Hidden chapters are omitted from the student library and progress percentage, but their files, catalog entries, and completion records remain stored. Lessons are displayed in a sandboxed frame.
+The browser can upload one `.html` lesson file per chapter, numbered 3–99, up to 5 MB. Keep each lesson self-contained, including its styles and images. Supabase Storage serves visible uploaded lessons publicly for students to read, while only approved administrators can upload them or change their visibility. The Account page lists chapters with **Hide chapter** or **Show chapter** controls. There is no permanent-delete control. Hidden chapters are omitted from the student library and progress percentage, but their files, catalog entries, and completion records remain stored. Lessons are displayed in a sandboxed frame.
 
-For an existing deployment, run `supabase/migrations/20261013_removed_chapters.sql` in the Supabase SQL Editor before deploying the updated `admin-tools` function and publishing the site. The table records visibility for bundled chapters 1 and 2; regular visitors can read those IDs, while only the service-role Edge Function can change the records. Uploaded chapters use the existing `available` flag in `chapter_catalog`.
+For an existing deployment, run the updated `supabase/admin-schema.sql` in the Supabase SQL Editor to refresh the role policies, then run `supabase/migrations/20261013_removed_chapters.sql` if it has not already been applied. Deploy the updated `admin-tools` function and publish the site. The table records visibility for bundled chapters 1 and 2; regular visitors can read those IDs, while only the service-role Edge Function can change the records. Uploaded chapters use the existing `available` flag in `chapter_catalog`.
 
 Disabling a student blocks future sign-ins and removes that student's display name and percentage from the progress board. Row-level security also blocks access to their profile and lesson progress. The owner and administrators may reactivate students. Administrator accounts must have their administrator access revoked by the owner before they can be disabled. The owner role can only be reassigned through the private Supabase SQL Editor.
 
