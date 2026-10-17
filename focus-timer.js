@@ -120,4 +120,5 @@
     paint();
   }
   window.ADS1FocusTimerUI = { view: page, bind };
+  window.dispatchEvent(new Event("hashchange"));
 })();
