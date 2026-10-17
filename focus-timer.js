@@ -82,27 +82,27 @@
     paint();
   }
   function bind() {
-    const root = app();
-    if (!root?.querySelector(".focus-page") || root.dataset.focusBound) return;
-    root.dataset.focusBound = "true";
-    root.querySelector("#focus-chapter").addEventListener("change", event => {
+    const pageRoot = app()?.querySelector(".focus-page");
+    if (!pageRoot || pageRoot.dataset.focusBound) return;
+    pageRoot.dataset.focusBound = "true";
+    pageRoot.querySelector("#focus-chapter").addEventListener("change", event => {
       state.chapter = event.target.value;
       paint();
     });
-    root.querySelectorAll("[data-focus-minutes]").forEach(button => button.addEventListener("click", () => {
+    pageRoot.querySelectorAll("[data-focus-minutes]").forEach(button => button.addEventListener("click", () => {
       state.minutes = Number(button.dataset.focusMinutes);
       if (!state.running && state.mode === "focus") state.seconds = state.minutes * 60;
-      root.querySelectorAll("[data-focus-minutes]").forEach(item => {
+      pageRoot.querySelectorAll("[data-focus-minutes]").forEach(item => {
         const selected = item === button;
         item.classList.toggle("active", selected);
         item.setAttribute("aria-pressed", String(selected));
       });
       paint();
     }));
-    root.querySelector("#focus-start").addEventListener("click", () => {
-      if (state.running) { pause(); root.querySelector("#focus-message").textContent = "Paused. Resume when you are ready."; return; }
+    pageRoot.querySelector("#focus-start").addEventListener("click", () => {
+      if (state.running) { pause(); pageRoot.querySelector("#focus-message").textContent = "Paused. Resume when you are ready."; return; }
       state.running = true;
-      root.querySelector("#focus-message").textContent = state.mode === "focus" ? "Stay with your study session." : "Enjoy your short break.";
+      pageRoot.querySelector("#focus-message").textContent = state.mode === "focus" ? "Stay with your study session." : "Enjoy your short break.";
       state.timer = window.setInterval(() => {
         if (state.seconds > 0) state.seconds--;
         if (state.seconds === 0) finish();
@@ -110,11 +110,11 @@
       }, 1000);
       paint();
     });
-    root.querySelector("#focus-reset").addEventListener("click", () => {
+    pageRoot.querySelector("#focus-reset").addEventListener("click", () => {
       pause();
       state.mode = "focus";
       state.seconds = state.minutes * 60;
-      root.querySelector("#focus-message").textContent = "Timer reset. Start when you are ready.";
+      pageRoot.querySelector("#focus-message").textContent = "Timer reset. Start when you are ready.";
       paint();
     });
     paint();
