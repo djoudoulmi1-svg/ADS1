@@ -1,5 +1,5 @@
 /* Cache the public learning hub shell and supplied lessons for offline reading. */
-const CACHE_NAME = "ads1-offline-v10";
+const CACHE_NAME = "ads1-offline-v11";
 const BASE = new URL("./", self.location.href);
 const SHELL_URLS = [
   "./",
@@ -19,7 +19,7 @@ const SHELL_URLS = [
   "./chapters.json",
   "./CHAPTER1.html",
   "./CHAPTER2.html",
-  "./assets/university-ouargla-logo.png",
+  "./assets/ads1-logo.svg",\n  "./assets/university-ouargla-logo.png",
   "./assets/university-ouargla-logo.jpg"
 ];
 
