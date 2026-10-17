@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">ADS1 Learning Hub</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1978f3"/>
+      <stop offset="1" stop-color="#104cae"/>
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="58" height="58" rx="17" fill="url(#bg)"/>
+  <path d="M17 43 28.3 18h7.4L47 43h-8l-2.1-5H27l-2.1 5H17Zm12.5-11h5l-2.5-6.2L29.5 32Z" fill="#fff"/>
+  <circle cx="47" cy="17" r="7" fill="#26c6da"/>
+  <path d="M45 17h4M47 15v4" stroke="#082b5d" stroke-width="1.7" stroke-linecap="round"/>
+  <path d="M42 50h9" stroke="#a8edff" stroke-width="2" stroke-linecap="round"/>
+</svg>
