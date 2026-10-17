@@ -837,3 +837,29 @@ code { font-family: var(--mono); font-size: .92em; }
 :root[data-theme="dark"] .debug-hint, :root[data-theme="dark"] .debug-explanation { color:var(--ink); background:#172a40; }
 :root[data-theme="dark"] .debug-fix-row input { color:var(--ink); background:#0c1828; border-color:var(--line); }
 @media (max-width:600px) { .debugger-panel { padding:15px; } .debug-fix-row { align-items:stretch; flex-direction:column; } .debug-fix-row .button { width:100%; } }
+
+
+/* Searchable course glossary */
+.glossary-intro { max-width: 680px; color: var(--muted); line-height: 1.7; }
+.glossary-tools { display: grid; gap: 14px; margin: 26px 0 12px; padding: 18px; background: var(--white); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+.glossary-tools input { width: 100%; min-height: 46px; padding: 11px 14px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 7px; font: inherit; }
+.glossary-tools input:focus-visible, .glossary-filters button:focus-visible, .glossary-card a:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.glossary-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.glossary-filters .button { min-height: 40px; }
+.glossary-filters .button.active { color: #fff; background: var(--blue); border-color: var(--blue); }
+.glossary-count { min-height: 20px; margin: 8px 2px; color: var(--muted); font-size: 13px; }
+.glossary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding-bottom: 20px; }
+.glossary-card { min-width: 0; padding: 18px; background: var(--white); border: 1px solid var(--line); border-radius: 9px; box-shadow: var(--shadow); }
+.glossary-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.glossary-card h2 { margin: 0; font: 700 18px/1.3 "Manrope", sans-serif; }
+.glossary-card a { flex: 0 0 auto; color: var(--blue); font-size: 12px; font-weight: 700; }
+.glossary-card p { margin: 12px 0 0; color: var(--muted); line-height: 1.65; }
+.glossary-empty { grid-column: 1 / -1; padding: 22px; color: var(--muted); background: var(--white); border: 1px solid var(--line); border-radius: 9px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 640px) {
+  .glossary-grid { grid-template-columns: 1fr; gap: 10px; }
+  .glossary-tools { padding: 14px; }
+  .glossary-card { padding: 15px; }
+  .glossary-card h2 { font-size: 17px; }
+  .glossary-filters .button { flex: 1 1 auto; }
+}
