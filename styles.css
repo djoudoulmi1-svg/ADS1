@@ -693,3 +693,55 @@ code { font-family: var(--mono); font-size: .92em; }
 :root[data-theme="dark"] .learning-guide .eyebrow,
 :root[data-theme="dark"] .chapters-section .eyebrow { color:#83c4ff; }
 :root[data-theme="dark"] .chapter-number { color:#a9d5ff; }
+
+
+/* Private student notes */
+.student-notes-panel { margin-top:20px; padding:24px; background:var(--white); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }
+.student-notes-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.student-notes-heading h2 { margin:7px 0 0; color:var(--ink); font:800 23px "Manrope",sans-serif; }
+.student-notes-count { color:var(--muted); font-size:12px; font-weight:700; white-space:nowrap; }
+.student-notes-intro { margin:11px 0 18px; color:var(--muted); font-size:14px; line-height:1.65; }
+.student-note-form { display:grid; gap:13px; padding:18px; background:var(--pale); border:1px solid var(--line); border-radius:8px; }
+.student-note-form label { display:grid; gap:7px; color:var(--ink); font-size:13px; font-weight:700; }
+.student-note-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.student-note-form input,.student-note-form select,.student-note-form textarea { width:100%; min-height:44px; padding:10px 12px; color:var(--ink); background:var(--white); border:1px solid var(--line); border-radius:6px; font:500 14px "DM Sans",sans-serif; }
+.student-note-form textarea { min-height:130px; resize:vertical; line-height:1.6; }
+.student-note-form input:focus-visible,.student-note-form select:focus-visible,.student-note-form textarea:focus-visible { border-color:var(--blue); outline:3px solid rgba(18,97,214,.18); outline-offset:1px; }
+.student-note-form input:disabled,.student-note-form select:disabled,.student-note-form textarea:disabled { opacity:.65; cursor:not-allowed; }
+.student-note-form-actions,.student-note-actions { display:flex; flex-wrap:wrap; align-items:center; gap:9px; }
+.student-note-form-actions [hidden] { display:none; }
+.student-notes-list { display:grid; gap:12px; margin-top:17px; }
+.student-note-card { padding:18px; background:var(--white); border:1px solid var(--line); border-radius:8px; }
+.student-note-meta { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; color:var(--muted); font-size:12px; }
+.student-note-meta time { margin-left:auto; }
+.student-note-kind { padding:4px 9px; border-radius:999px; font-weight:800; }
+.student-note-kind.summary { color:#08764f; background:rgba(19,128,95,.11); }
+.student-note-kind.question { color:#5a3cb0; background:rgba(109,40,217,.1); }
+.student-note-card h3 { margin:12px 0 7px; color:var(--ink); font:800 17px "Manrope",sans-serif; }
+.student-note-card p { margin:0 0 15px; color:var(--ink); font-size:14px; line-height:1.75; white-space:pre-wrap; overflow-wrap:anywhere; }
+.student-note-actions .button { min-height:38px; padding:0 12px; font-size:12px; }
+.danger-text { color:#b42332; }
+.student-notes-empty { margin:0; padding:15px; color:var(--muted); background:var(--pale); border-radius:7px; font-size:14px; }
+:root[data-theme="dark"] .student-notes-panel { background:#101e30; }
+:root[data-theme="dark"] .student-note-form { background:#122338; }
+:root[data-theme="dark"] .student-note-form input,
+:root[data-theme="dark"] .student-note-form select,
+:root[data-theme="dark"] .student-note-form textarea { color:var(--ink); background:#0b1727; }
+:root[data-theme="dark"] .student-note-kind.summary { color:#8de0b3; background:#12352d; }
+:root[data-theme="dark"] .student-note-kind.question { color:#cfb8ff; background:#281d40; }
+:root[data-theme="dark"] .danger-text { color:#ff9ca7; }
+:root[data-theme="dark"] .student-notes-empty { background:#142338; }
+@media(max-width:760px) {
+  .student-notes-panel { margin-top:15px; padding:16px; border-radius:9px; }
+  .student-notes-heading h2 { font-size:21px; }
+  .student-notes-intro { font-size:14px; }
+  .student-note-form { gap:12px; padding:14px; }
+  .student-note-fields { grid-template-columns:1fr; gap:11px; }
+  .student-note-form input,.student-note-form select,.student-note-form textarea { min-height:46px; font-size:16px; }
+  .student-note-form textarea { min-height:145px; }
+  .student-note-card { padding:15px; }
+  .student-note-meta time { flex-basis:100%; margin-left:0; }
+  .student-note-card h3 { font-size:16px; }
+  .student-note-card p { font-size:15px; line-height:1.75; }
+  .student-note-form-actions .button { min-height:44px; }
+}
