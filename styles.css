@@ -784,3 +784,23 @@ code { font-family: var(--mono); font-size: .92em; }
   .lesson-toolbar > .button:first-child { grid-column:1; grid-row:1; justify-self:start; }
   .lesson-toolbar > .button:last-child { grid-column:2; grid-row:1; justify-self:end; }
 }
+
+
+/* Progress page: make completion status and the next useful action easy to scan. */
+.progress-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:18px 0; }
+.progress-metric { display:grid; grid-template-columns:1fr auto; align-items:center; gap:4px 12px; padding:14px 16px; background:var(--paper); border:1px solid var(--line); border-radius:7px; }
+.progress-metric span,.progress-metric small { color:var(--muted); font-size:13px; }
+.progress-metric strong { grid-column:2; grid-row:1 / span 2; color:var(--ink); font-size:19px; }
+.progress-next-step { display:flex; align-items:center; justify-content:space-between; gap:20px; margin:18px 0; padding:19px 20px; background:var(--pale); border:1px solid var(--line); border-left:4px solid var(--blue); border-radius:8px; }
+.progress-next-step h3 { margin:5px 0 6px; color:var(--ink); font-size:18px; line-height:1.4; }
+.progress-next-step p { margin:0; max-width:620px; color:var(--muted); font-size:14px; line-height:1.65; }
+.progress-next-step .button { flex:0 0 auto; min-height:44px; }
+.progress-next-step.complete { border-left-color:var(--green); }
+.progress-checklist-title { margin:22px 0 4px; color:var(--ink); font-size:16px; }
+@media(max-width:600px) {
+  .progress-metrics { gap:8px; }
+  .progress-metric { grid-template-columns:1fr; gap:4px; padding:12px; }
+  .progress-metric strong { grid-column:1; grid-row:auto; font-size:18px; }
+  .progress-next-step { align-items:stretch; flex-direction:column; gap:14px; padding:16px; }
+  .progress-next-step .button { align-self:flex-start; }
+}
