@@ -914,6 +914,7 @@ function render() {
   document.querySelectorAll("iframe.lesson-frame").forEach(frame => {
     bindLessonFrameTheme(frame);
     syncLessonFrameTheme(frame);
+    bindLessonFrameResume(frame);
   });
   document.querySelectorAll("[data-nav]").forEach(link => link.classList.toggle("active", link.dataset.nav === page || (page === "chapter" && link.dataset.nav === "chapters")));
   if (page === "arena" && arenaUI) arenaUI.bind();
