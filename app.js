@@ -13,6 +13,10 @@ const backendClient = supabaseReady
   : null;
 let currentSession = null;
 let currentProfile = null;
+let studentNotes = [];
+let studentNotesReady = false;
+let studentNotesNotice = "";
+let editingNoteId = null;
 let chapterProgress = new Set();
 let sharedProfiles = [];
 let accountNotice = "";
@@ -335,6 +339,122 @@ function profileColumns() {
   return emailFeature ? "display_name, progress_percent, show_email" : "display_name, progress_percent";
 }
 
+function studentNotesPanel() {
+  const chapterOptions = chapters.filter(chapter => chapter.available).map(chapter =>
+    `<option value="${escapeHTML(chapter.id)}">${escapeHTML(chapter.number)} · ${escapeHTML(chapter.title)}</option>`
+  ).join("");
+  const noteRows = studentNotes.map(note => {
+    const chapter = chapters.find(item => String(item.id) === String(note.chapter_id));
+    const chapterLabel = chapter ? chapter.title : `Chapter ${note.chapter_id}`;
+    const typeLabel = note.note_type === "question" ? "Question" : "Summary";
+    const dateLabel = note.updated_at ? new Date(note.updated_at).toLocaleDateString() : "";
+    return `<article class="student-note-card">
+      <div class="student-note-meta"><span class="student-note-kind ${note.note_type === "question" ? "question" : "summary"}">${typeLabel}</span><span>${escapeHTML(chapterLabel)}</span>${dateLabel ? `<time datetime="${escapeHTML(note.updated_at)}">Updated ${escapeHTML(dateLabel)}</time>` : ""}</div>
+      <h3>${escapeHTML(note.title)}</h3><p>${escapeHTML(note.content)}</p>
+      <div class="student-note-actions"><button class="button secondary" type="button" data-edit-note="${escapeHTML(note.id)}">Edit</button><button class="text-button danger-text" type="button" data-delete-note="${escapeHTML(note.id)}">Delete</button></div>
+    </article>`;
+  }).join("");
+  return `<section class="student-notes-panel" id="student-notes" aria-labelledby="student-notes-heading">
+    <div class="student-notes-heading"><div><span class="eyebrow">Private to your account</span><h2 id="student-notes-heading">My notes</h2></div><span class="student-notes-count">${studentNotesReady ? studentNotes.length : "—"} saved</span></div>
+    <p class="student-notes-intro">Save a summary or a question beside the chapter it belongs to. Only you can read these notes.</p>
+    <p class="account-notice ${studentNotesNotice ? "error" : ""}" id="notes-notice" aria-live="polite">${escapeHTML(studentNotesNotice)}</p>
+    <form class="student-note-form" id="student-note-form">
+      <div class="student-note-fields">
+        <label for="student-note-chapter">Chapter<select id="student-note-chapter" name="chapterId" required ${studentNotesReady ? "" : "disabled"}>${chapterOptions}</select></label>
+        <label for="student-note-type">Type<select id="student-note-type" name="noteType" required ${studentNotesReady ? "" : "disabled"}><option value="summary">Summary</option><option value="question">Question</option></select></label>
+      </div>
+      <label for="student-note-title">Title<input id="student-note-title" name="title" maxlength="120" required ${studentNotesReady ? "" : "disabled"} placeholder="A short title"></label>
+      <label for="student-note-content">Your note<textarea id="student-note-content" name="content" rows="5" maxlength="10000" required ${studentNotesReady ? "" : "disabled"} placeholder="Write a summary or a question about this chapter…"></textarea></label>
+      <div class="student-note-form-actions"><button class="button" id="save-student-note" type="submit" ${studentNotesReady ? "" : "disabled"}>${editingNoteId ? "Save changes" : "Save note"}</button><button class="button secondary" id="cancel-note-edit" type="button" ${editingNoteId ? "" : "hidden"}>Cancel edit</button></div>
+    </form>
+    <div class="student-notes-list" id="student-notes-list" aria-live="polite">${noteRows || (studentNotesReady ? `<p class="student-notes-empty">Your saved summaries and questions will appear here.</p>` : "")}</div>
+  </section>`;
+}
+
+async function loadStudentNotes(userId) {
+  studentNotes = [];
+  studentNotesReady = false;
+  if (!backendClient || !userId) return;
+  const { data, error } = await backendClient.from("student_notes")
+    .select("id, chapter_id, note_type, title, content, created_at, updated_at")
+    .eq("user_id", userId).order("updated_at", { ascending: false });
+  if (error) {
+    studentNotesNotice = "Private notes need a database update before they can be used. Please contact the site owner.";
+    editingNoteId = null;
+    return;
+  }
+  studentNotes = Array.isArray(data) ? data : [];
+  studentNotesReady = true;
+  studentNotesNotice = "";
+  if (editingNoteId && !studentNotes.some(note => String(note.id) === String(editingNoteId))) editingNoteId = null;
+}
+
+function bindStudentNotes() {
+  document.querySelector("#student-note-form")?.addEventListener("submit", saveStudentNote);
+  document.querySelector("#cancel-note-edit")?.addEventListener("click", () => {
+    editingNoteId = null;
+    render();
+    document.querySelector("#student-note-title")?.focus();
+  });
+  document.querySelector("#student-notes-list")?.addEventListener("click", async event => {
+    const editButton = event.target.closest("[data-edit-note]");
+    if (editButton) {
+      const note = studentNotes.find(item => String(item.id) === editButton.dataset.editNote);
+      if (!note) return;
+      editingNoteId = note.id;
+      render();
+      const form = document.querySelector("#student-note-form");
+      form.elements.chapterId.value = String(note.chapter_id);
+      form.elements.noteType.value = note.note_type;
+      form.elements.title.value = note.title;
+      form.elements.content.value = note.content;
+      document.querySelector("#student-note-title")?.focus();
+      return;
+    }
+    const deleteButton = event.target.closest("[data-delete-note]");
+    if (deleteButton && window.confirm("Delete this note? This cannot be undone.")) await deleteStudentNote(deleteButton.dataset.deleteNote);
+  });
+}
+
+async function saveStudentNote(event) {
+  event.preventDefault();
+  if (!currentSession || !studentNotesReady) return;
+  const form = new FormData(event.currentTarget);
+  const values = {
+    chapter_id: String(form.get("chapterId") || ""),
+    note_type: String(form.get("noteType") || ""),
+    title: String(form.get("title") || "").trim(),
+    content: String(form.get("content") || "").trim(),
+    updated_at: new Date().toISOString()
+  };
+  if (!values.title || !values.content || !["summary", "question"].includes(values.note_type)) return;
+  const notice = document.querySelector("#notes-notice");
+  if (notice) { notice.textContent = "Saving your private note…"; notice.className = "account-notice"; }
+  const result = editingNoteId
+    ? await backendClient.from("student_notes").update(values).eq("id", editingNoteId).eq("user_id", currentSession.user.id).select("id").single()
+    : await backendClient.from("student_notes").insert({ ...values, user_id: currentSession.user.id }).select("id").single();
+  if (result.error) {
+    if (notice) { notice.textContent = "Could not save this note. Please try again."; notice.className = "account-notice error"; }
+    return;
+  }
+  editingNoteId = null;
+  await loadStudentNotes(currentSession.user.id);
+  render();
+}
+
+async function deleteStudentNote(noteId) {
+  if (!currentSession || !studentNotesReady) return;
+  const { error } = await backendClient.from("student_notes").delete().eq("id", noteId).eq("user_id", currentSession.user.id);
+  if (error) {
+    const notice = document.querySelector("#notes-notice");
+    if (notice) { notice.textContent = "Could not delete this note. Please try again."; notice.className = "account-notice error"; }
+    return;
+  }
+  if (String(editingNoteId) === String(noteId)) editingNoteId = null;
+  await loadStudentNotes(currentSession.user.id);
+  render();
+}
+
 function accountPage() {
   if (!backendClient) {
     return `<section class="container account-shell fade-in">
@@ -363,6 +483,7 @@ function accountPage() {
         <div class="account-lesson-list">${lessonRows}</div>
         ${arenaSummary}
       </section>
+      ${studentNotesPanel()}
       <section class="leaderboard-panel" aria-labelledby="leaderboard-heading">
         <div class="leaderboard-heading"><div><span class="eyebrow">Shared with signed-in students</span><h2 id="leaderboard-heading">Course progress board</h2></div><button class="button secondary" id="load-leaderboard" type="button">${sharedProfiles.length ? "Refresh" : "Show board"}</button></div>
         <p>Display names, Arena XP and completion percentages appear here. Detailed lesson records are private, and an email address appears only if its owner chooses to show it.</p>
@@ -783,6 +904,7 @@ function bindAccountForms() {
   document.querySelector("#show-email")?.addEventListener("change", updateEmailVisibility);
   document.querySelector("#sign-out")?.addEventListener("click", signOut);
   document.querySelector("#load-leaderboard")?.addEventListener("click", loadLeaderboard);
+  bindStudentNotes();
 }
 
 async function signUp(event) {
@@ -931,6 +1053,7 @@ async function loadAccountData(user) {
   }
 
   chapterProgress = new Set(rows.filter(row => row.completed).map(row => String(row.chapter_id)));
+  await loadStudentNotes(user.id);
   if (window.ADS1ArenaUI) await window.ADS1ArenaUI.load();
   const percent = computeProgressPercent();
   currentProfile = { ...profile, progress_percent: percent };
@@ -1031,6 +1154,10 @@ async function initializeAccounts() {
         await syncRoster();
       } else {
         currentProfile = null;
+        studentNotes = [];
+        studentNotesReady = false;
+        studentNotesNotice = "";
+        editingNoteId = null;
         currentIsAdmin = false;
         currentIsOwner = false;
         adminUsers = [];
