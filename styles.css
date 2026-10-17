@@ -873,3 +873,27 @@ code { font-family: var(--mono); font-size: .92em; }
   .glossary-card-top { flex-direction: column; }
   .glossary-card-actions { justify-content: flex-start; }
 }
+
+/* Browser-local study focus timer */
+.focus-intro { max-width: 700px; color: var(--muted); line-height: 1.7; }
+.focus-panel { display: grid; grid-template-columns: minmax(0, .9fr) minmax(300px, 1.1fr); gap: 30px; align-items: center; margin-top: 24px; padding: 28px; background: var(--white); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.focus-setup { display: grid; gap: 24px; align-self: stretch; align-content: start; }
+.focus-setup > label { display: grid; gap: 8px; color: var(--ink); font-size: 14px; font-weight: 700; }
+.focus-setup select { width: 100%; min-height: 46px; padding: 10px 12px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 7px; font: inherit; }
+.focus-presets { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; border: 0; }
+.focus-presets legend { width: 100%; margin-bottom: 9px; color: var(--ink); font-size: 14px; font-weight: 700; }
+.focus-presets .button.active { color: #fff; background: var(--blue); border-color: var(--blue); }
+.focus-clock-wrap { display: grid; justify-items: center; text-align: center; padding: 24px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
+.focus-mode { margin: 0 0 8px; color: var(--muted); font-size: 14px; font-weight: 700; }
+.focus-clock { display: grid; place-items: center; width: min(56vw, 230px); aspect-ratio: 1; color: var(--blue); background: var(--white); border: 10px solid var(--line); border-radius: 50%; font: 800 clamp(42px, 7vw, 64px)/1 "Manrope", sans-serif; font-variant-numeric: tabular-nums; }
+.focus-message { min-height: 24px; margin: 16px 0; color: var(--muted); }
+.focus-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.focus-footer { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 18px; border-top: 1px solid var(--line); }
+.focus-footer p { margin: 0; color: var(--muted); font-size: 14px; }
+.focus-footer p strong { color: var(--ink); }
+.focus-page :focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+@media (max-width: 760px) {
+  .focus-panel { grid-template-columns: 1fr; gap: 22px; padding: 18px; }
+  .focus-footer { align-items: flex-start; flex-direction: column; }
+  .focus-clock { width: min(62vw, 220px); }
+}
