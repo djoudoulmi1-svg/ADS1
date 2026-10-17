@@ -651,3 +651,40 @@ code { font-family: var(--mono); font-size: .92em; }
 @media (prefers-reduced-motion:reduce) {
   .fade-in, .completion-celebration, .completion-check { animation:none!important; }
 }
+
+
+/* Learning path, return-to-lesson prompt, and chapter filters */
+.learning-guide { padding-top:48px; padding-bottom:30px; }
+.learning-guide-heading { margin-bottom:17px; }
+.learning-guide-heading h2 { margin:7px 0 0; color:var(--ink); font:800 clamp(22px,3vw,28px) "Manrope",sans-serif; }
+.learning-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.learning-step { min-height:100px; display:grid; grid-template-columns:38px minmax(0,1fr) 18px; align-items:center; gap:12px; padding:17px; color:var(--ink); background:var(--white); border:1px solid var(--line); border-radius:9px; text-decoration:none; transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease; }
+.learning-step:hover { transform:translateY(-3px); border-color:var(--sky); box-shadow:var(--shadow); }
+.learning-step-number { width:36px; height:36px; display:grid; place-items:center; color:var(--blue); background:var(--pale); border-radius:8px; font:800 12px "Manrope",sans-serif; }
+.learning-step strong,.learning-step small { display:block; }
+.learning-step strong { font-size:14px; }
+.learning-step small { margin-top:5px; color:var(--muted); font-size:12px; line-height:1.5; }
+.learning-step-arrow { color:var(--blue); font-size:19px; }
+.chapter-filters { display:flex; gap:8px; margin:16px 0 18px; overflow-x:auto; padding:2px 1px 6px; scrollbar-width:thin; }
+.chapter-filter { flex:0 0 auto; min-height:38px; padding:0 14px; color:var(--muted); background:var(--white); border:1px solid var(--line); border-radius:999px; font:700 12px "DM Sans",sans-serif; cursor:pointer; transition:background .18s ease,color .18s ease,border-color .18s ease; }
+.chapter-filter:hover { border-color:var(--blue); color:var(--blue); }
+.chapter-filter.active { color:#fff; background:var(--blue); border-color:var(--blue); }
+.chapter-card .status.complete { color:#08764f; background:rgba(19,128,95,.11); }
+.chapter-card .status.in-progress { color:#9a5b00; background:rgba(224,157,44,.15); }
+.chapter-card .status.not-started { color:var(--muted); background:rgba(135,149,168,.12); }
+:root[data-theme="dark"] .learning-step { background:#101e30; }
+:root[data-theme="dark"] .learning-step-number { color:#83c4ff; background:#142a43; }
+:root[data-theme="dark"] .chapter-filter { color:var(--muted); background:#101e30; border-color:var(--line); }
+:root[data-theme="dark"] .chapter-filter.active { color:#fff; background:var(--blue); border-color:var(--blue); }
+:root[data-theme="dark"] .chapter-card .status.complete { color:#8de0b3; background:#12352d; }
+:root[data-theme="dark"] .chapter-card .status.in-progress { color:#f3cb78; background:#382c18; }
+@media(max-width:760px) {
+  .learning-guide { padding-top:34px; padding-bottom:20px; }
+  .learning-steps { grid-template-columns:1fr; gap:9px; }
+  .learning-step { min-height:78px; padding:13px 14px; }
+  .chapter-filters { margin:13px 0 15px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .learning-step { transition:none; }
+  .learning-step:hover { transform:none; }
+}
