@@ -182,15 +182,24 @@ function crumbs(items) {
   return `<nav class="breadcrumbs" aria-label="Breadcrumb">${items.map((item, index) => `${index ? `<span aria-hidden="true">/</span>` : ""}${item.href ? `<a href="${item.href}">${item.label}</a>` : `<strong>${item.label}</strong>`}`).join("")}</nav>`;
 }
 
+function getLastOpenedChapterId() {
+  try { return localStorage.getItem("ads1.last-opened-chapter") || ""; } catch { return ""; }
+}
+
 function chapterCard(chapter) {
-  const status = chapter.available ? "Available" : "Waiting for upload";
-  const action = "Open chapter <span aria-hidden=\"true\">→</span>";
+  const completed = chapter.available && isChapterComplete(chapter.id);
+  const inProgress = chapter.available && !completed && getLastOpenedChapterId() === String(chapter.id);
+  const status = completed ? "Completed" : inProgress ? "In progress" : chapter.available ? "Not started" : "Waiting for upload";
+  const statusClass = completed ? "complete" : inProgress ? "in-progress" : chapter.available ? "not-started" : "pending";
+  const action = completed || inProgress ? "Continue chapter <span aria-hidden=\"true\">→</span>" : "Open chapter <span aria-hidden=\"true\">→</span>";
   const description = chapter.description || "Course lesson supplied by the course team.";
-  return `<article class="chapter-card ${chapter.available ? "available" : "unavailable"}" data-search="${escapeHTML(chapter.title.toLowerCase())}">
-    <div class="card-top"><span class="chapter-number">CHAPTER ${escapeHTML(chapter.number)}</span><span class="status ${chapter.available ? "" : "pending"}">${status}</span></div>
+  const searchText = (chapter.title + " " + description).toLowerCase();
+  const state = completed ? "completed" : inProgress ? "in-progress" : "not-started";
+  return \`<article class="chapter-card ${chapter.available ? "available" : "unavailable"}" data-state="${state}" data-search="${escapeHTML(searchText)}">
+    <div class="card-top"><span class="chapter-number">CHAPTER ${escapeHTML(chapter.number)}</span><span class="status ${statusClass}">${status}</span></div>
     <h3>${escapeHTML(chapter.title)}</h3><p>${escapeHTML(description)}</p>
-    ${chapter.available ? `<a class="card-action" href="#chapter/${chapter.id}">${action}</a>` : `<span class="card-action">${action}</span>`}
-  </article>`;
+    ${chapter.available ? \`<a class="card-action" href="#chapter/${escapeHTML(chapter.id)}">${action}</a>\` : \`<span class="card-action">${action}</span>\`}
+  </article>\`;
 }
 
 function waitingChaptersCard() {
@@ -216,13 +225,21 @@ function home() {
       <h1>Learn algorithms.<br><em>One step at a time.</em></h1>
       <p>Study your ADS1 lessons, explore worked examples, practise algorithm tracing, and test your understanding through interactive activities.</p>
       <div class="hero-actions">
-        <a class="button" href="#chapters">Explore chapters <span class="arrow" aria-hidden="true">→</span></a>
+        ${(() => { const last = chapters.find(item => item.available && String(item.id) === getLastOpenedChapterId()); return last ? \`<a class="button" href="#lesson/${escapeHTML(last.id)}">Continue: ${escapeHTML(last.title)} <span class="arrow" aria-hidden="true">→</span></a>\` : \`<a class="button" href="#chapters">Explore chapters <span class="arrow" aria-hidden="true">→</span></a>\`; })()}
         ${arenaUI ? `<a class="button secondary" href="#arena">Enter the Arena <span class="arrow" aria-hidden="true">→</span></a>` : ""}
       </div>
     </div>
     ${arenaUI ? arenaUI.heroDemo() : ""}
   </div></section>
   ${arenaUI ? arenaUI.homeStrip() : ""}
+  <section class="container learning-guide" aria-labelledby="learning-guide-title">
+    <div class="learning-guide-heading"><span class="eyebrow">A simple study path</span><h2 id="learning-guide-title">Make progress one step at a time</h2></div>
+    <div class="learning-steps">
+      <a class="learning-step" href="#chapters"><span class="learning-step-number">01</span><span><strong>Study a chapter</strong><small>Read the lesson and follow its examples.</small></span><span class="learning-step-arrow" aria-hidden="true">→</span></a>
+      <a class="learning-step" href="#arena"><span class="learning-step-number">02</span><span><strong>Practise what you learned</strong><small>Use the Arena to test your understanding.</small></span><span class="learning-step-arrow" aria-hidden="true">→</span></a>
+      <a class="learning-step" href="#account"><span class="learning-step-number">03</span><span><strong>Track your progress</strong><small>Mark lessons complete and see your progress.</small></span><span class="learning-step-arrow" aria-hidden="true">→</span></a>
+    </div>
+  </section>
   <section class="container overview" aria-label="Course information">
     <div class="section-heading"><span class="eyebrow">Your course</span><h2>Built around the material</h2></div>
     <div class="facts">
@@ -234,6 +251,12 @@ function home() {
   <section class="chapters-section" id="chapters"><div class="container">
     <div class="section-top"><div><span class="eyebrow">Course library</span><h2>Choose a chapter</h2></div>
       <label class="search-wrap"><span class="search-icon" aria-hidden="true"></span><input id="chapter-search" type="search" placeholder="Search available material" aria-label="Search chapters"></label>
+    </div>
+    <div class="chapter-filters" role="group" aria-label="Filter chapters">
+      <button class="chapter-filter active" type="button" data-chapter-filter="all" aria-pressed="true">All chapters</button>
+      <button class="chapter-filter" type="button" data-chapter-filter="in-progress" aria-pressed="false">In progress</button>
+      <button class="chapter-filter" type="button" data-chapter-filter="not-started" aria-pressed="false">Not started</button>
+      <button class="chapter-filter" type="button" data-chapter-filter="completed" aria-pressed="false">Completed</button>
     </div>
     <div class="chapter-grid" id="chapter-grid">${chapters.map(chapterCard).join("")}${chapters.some(chapter => chapter.remote) ? "" : waitingChaptersCard()}</div>
     <p class="content-note">Only supplied course material is shown as available. New chapters uploaded by an administrator appear here automatically.</p>
@@ -700,27 +723,45 @@ function render() {
   if (page === "arena" && arenaUI) arenaUI.bind();
   nav.classList.remove("open");
   menuToggle.setAttribute("aria-expanded", "false");
-  if (page === "lesson") document.querySelector("#mark-complete").addEventListener("click", markComplete);
+  if (page === "lesson") {
+    const lessonChapter = chapters.find(item => item.available && String(item.id) === query);
+    if (lessonChapter) { try { localStorage.setItem("ads1.last-opened-chapter", String(lessonChapter.id)); } catch {} }
+    document.querySelector("#mark-complete").addEventListener("click", markComplete);
+  }
   if (page === "account" && backendClient) bindAccountForms();
   if (page === "account" && currentIsAdmin) bindAdminForms();
-  if (page === "home" || page === "chapters") document.querySelector("#chapter-search").addEventListener("input", filterChapters);
+  if (page === "home" || page === "chapters") {
+    document.querySelector("#chapter-search").addEventListener("input", filterChapters);
+    document.querySelectorAll("[data-chapter-filter]").forEach(button => button.addEventListener("click", filterChapters));
+  }
   if ((page === "home" || page === "chapters") && arenaUI) arenaUI.bindHome();
   if (page === "lesson") loadRemoteLesson();
   if (page === "lesson") app.focus({ preventScroll: true });
 }
 
 function filterChapters(event) {
-  const search = event.target.value.trim().toLowerCase();
+  if (event.currentTarget?.matches("[data-chapter-filter]")) {
+    document.querySelectorAll("[data-chapter-filter]").forEach(button => {
+      const active = button === event.currentTarget;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
+  const search = (document.querySelector("#chapter-search")?.value || "").trim().toLowerCase();
+  const activeFilter = document.querySelector("[data-chapter-filter].active")?.dataset.chapterFilter || "all";
   const cards = [...document.querySelectorAll(".chapter-card")];
   let visible = 0;
   cards.forEach(card => {
-    const matches = card.dataset.search.includes(search) && (card.classList.contains("available") || !search);
+    const available = card.classList.contains("available");
+    const matchesSearch = (card.dataset.search || "").includes(search);
+    const matchesFilter = activeFilter === "all" || card.dataset.state === activeFilter;
+    const matches = available ? matchesSearch && matchesFilter : !search && activeFilter === "all";
     card.hidden = !matches;
     if (matches) visible++;
   });
   const grid = document.querySelector("#chapter-grid");
   let empty = grid.querySelector(".empty-state");
-  if (!visible && !empty) grid.insertAdjacentHTML("beforeend", `<div class="empty-state">No available lesson matches that search.</div>`);
+  if (!visible && !empty) grid.insertAdjacentHTML("beforeend", \`<div class="empty-state">No chapters match this search and filter.</div>\`);
   if (visible && empty) empty.remove();
 }
 
