@@ -1,5 +1,5 @@
 /* Cache the public learning hub shell and supplied lessons for offline reading. */
-const CACHE_NAME = "ads1-offline-v9";
+const CACHE_NAME = "ads1-offline-v10";
 const BASE = new URL("./", self.location.href);
 const SHELL_URLS = [
   "./",
@@ -17,8 +17,8 @@ const SHELL_URLS = [
   "./study-plan.js?v=1",
   "./offline.js?v=1",
   "./chapters.json",
-  "./CHAPTER1.html?v=dark-audit-3",
-  "./CHAPTER2.html?v=dark-audit-2",
+  "./CHAPTER1.html",
+  "./CHAPTER2.html",
   "./assets/university-ouargla-logo.png",
   "./assets/university-ouargla-logo.jpg"
 ];
@@ -54,6 +54,11 @@ self.addEventListener("fetch", event => {
     } catch {
       const saved = await cache.match(request);
       if (saved) return saved;
+      const relativePath = url.pathname.slice(BASE.pathname.length);
+      if (/^CHAPTER\\d+\\.html$/i.test(relativePath)) {
+        const unversionedLesson = await cache.match(new URL("./" + relativePath, BASE).href);
+        if (unversionedLesson) return unversionedLesson;
+      }
       if (request.mode === "navigate") {
         const shell = await cache.match(new URL("./", BASE).href) || await cache.match(new URL("./index.html", BASE).href);
         if (shell) return shell;
