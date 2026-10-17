@@ -337,7 +337,17 @@ function chapterPage(id) {
 function lessonPage(id) {
   const chapter = chapters.find(item => item.id === id && item.available);
   if (!chapter) return home();
+  const availableChapters = chapters.filter(item => item.available);
+  const chapterIndex = availableChapters.findIndex(item => String(item.id) === String(chapter.id));
+  const previous = chapterIndex > 0 ? availableChapters[chapterIndex - 1] : null;
+  const next = chapterIndex >= 0 ? availableChapters[chapterIndex + 1] : null;
+  const chapterNav = `<nav class="lesson-chapter-nav" aria-label="Chapter navigation">
+    ${previous ? `<a href="#lesson/${escapeHTML(previous.id)}"><span aria-hidden="true">←</span> Previous chapter</a>` : `<span class="lesson-chapter-nav-disabled">First available chapter</span>`}
+    <span class="lesson-chapter-nav-count">Chapter ${chapterIndex + 1} of ${availableChapters.length}</span>
+    ${next ? `<a href="#lesson/${escapeHTML(next.id)}">Next chapter <span aria-hidden="true">→</span></a>` : `<span class="lesson-chapter-nav-disabled">Latest available chapter</span>`}
+  </nav>`;
   return `<div class="lesson-toolbar"><a class="button secondary" href="#chapter/${escapeHTML(chapter.id)}"><span aria-hidden="true">←</span> Back to chapter</a><div class="lesson-toolbar-title"><strong>${escapeHTML(chapter.title)}</strong><span>Chapter ${escapeHTML(chapter.number)} · University of Ouargla</span></div><button class="button secondary" id="mark-complete" data-chapter="${escapeHTML(chapter.id)}" type="button" ${isChapterComplete(chapter.id) ? "disabled" : ""}>${isChapterComplete(chapter.id) ? "Completed" : "Mark complete"}</button><button class="button secondary" id="reading-mode-toggle" type="button" aria-pressed="false">Focus reading</button></div>
+  ${chapterNav}
   <iframe class="lesson-frame" data-chapter-id="${escapeHTML(chapter.id)}" ${chapter.remote ? `data-remote-src="${escapeHTML(chapter.file)}"` : `src="${escapeHTML(chapter.file)}"`} title="Chapter ${escapeHTML(chapter.number)}: ${escapeHTML(chapter.title)} lesson" allow="fullscreen"${chapter.remote ? ' sandbox="allow-scripts allow-forms"' : ""}></iframe>`;
 }
 
