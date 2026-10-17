@@ -218,9 +218,10 @@
     return `<section class="container arena-shell fade-in">
       ${crumbs([{ label: "Home", href: "#home" }, { label: "Arena" }])}
       <span class="eyebrow">Practice zone</span><h1>Algo Arena</h1>
-      <p class="arena-intro">Three tracks with three levels each. Clear a level to earn ${A.LEVEL_XP} XP, climb the ranks and raise your course progress.</p>
+      <p class="arena-intro">Three scored tracks with three levels each, plus a debugging lab. Clear a level to earn ${A.LEVEL_XP} XP, climb the ranks and raise your course progress.</p>
       ${rankPanel()}
       <div class="track-grid">${A.TRACK_ORDER.map(trackCard).join("")}</div>
+      <article class="track-card debugger-card"><div class="track-icon" aria-hidden="true">⌕</div><span class="track-tagline">NEW PRACTICE</span><h3>Algorithm Bug Lab</h3><p>Find a faulty line, repair the pseudocode, and understand why the fix works.</p><a class="card-action" href="#arena/debug">Start debugging <span aria-hidden="true">→</span></a></article>
       <div class="content-note">Arena levels count for ${WEIGHT_PERCENT}% of your course progress and the lessons count for the other ${100 - WEIGHT_PERCENT}%. ${esc(savedNote())}</div>
     </section>`;
   }
