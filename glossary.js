@@ -32,13 +32,26 @@
   const escape = value => String(value).replace(/[&<>"']/g, char =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
   const app = () => document.querySelector("#app");
+  const SAVED_KEY = "ads1.glossary.saved.v1";
   let filter = "all";
+  let savedOnly = false;
+  let saved = readSaved();
   let search = "";
 
+  function readSaved() {
+    try {
+      const value = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
+      return new Set(Array.isArray(value) ? value.filter(name => entries.some(([term]) => term === name)) : []);
+    } catch { return new Set(); }
+  }
+  function persistSaved() {
+    try { localStorage.setItem(SAVED_KEY, JSON.stringify([...saved])); } catch { /* ignore unavailable storage */ }
+  }
   function visibleEntries() {
     const term = search.trim().toLocaleLowerCase();
     return entries.filter(([name, definition, chapter]) =>
       (filter === "all" || String(chapter) === filter) &&
+      (!savedOnly || saved.has(name)) &&
       (!term || name.toLocaleLowerCase().includes(term) || definition.toLocaleLowerCase().includes(term)));
   }
 
@@ -47,14 +60,20 @@
     if (!host) return;
     const rows = visibleEntries();
     host.innerHTML = rows.length
-      ? rows.map(([name, definition, chapter]) => `<article class="glossary-card"><div class="glossary-card-top"><h2>${escape(name)}</h2><a href="#lesson/${chapter}" aria-label="Open Chapter ${chapter}">Chapter ${String(chapter).padStart(2, "0")} <span aria-hidden="true">↗</span></a></div><p>${escape(definition)}</p></article>`).join("")
+      ? rows.map(([name, definition, chapter]) => {
+        const isSaved = saved.has(name);
+        return `<article class="glossary-card"><div class="glossary-card-top"><h2>${escape(name)}</h2><div class="glossary-card-actions"><a href="#lesson/${chapter}" aria-label="Open Chapter ${chapter}">Chapter ${String(chapter).padStart(2, "0")} <span aria-hidden="true">↗</span></a><button type="button" class="glossary-save${isSaved ? " saved" : ""}" data-glossary-save="${escape(name)}" aria-pressed="${isSaved}" aria-label="${isSaved ? "Remove" : "Save"} ${escape(name)} ${isSaved ? "from" : "to"} saved terms">${isSaved ? "★ Saved" : "☆ Save"}</button></div></div><p>${escape(definition)}</p></article>`;
+      }).join("")
       : '<p class="glossary-empty" role="status">No matching terms. Try a different word or chapter filter.</p>';
     const count = app()?.querySelector("#glossary-count");
     if (count) count.textContent = `${rows.length} term${rows.length === 1 ? "" : "s"}`;
+    const savedCount = app()?.querySelector("#glossary-saved-count");
+    if (savedCount) savedCount.textContent = saved.size ? `(${saved.size})` : "";
   }
 
   function page() {
     filter = "all";
+    savedOnly = false;
     search = "";
     document.title = "ADS1 Glossary | ADS1 Learning Hub";
     return `<section class="container page-shell glossary-page">
@@ -68,6 +87,7 @@
           <button type="button" class="button secondary active" data-glossary-filter="all" aria-pressed="true">All chapters</button>
           <button type="button" class="button secondary" data-glossary-filter="1" aria-pressed="false">Chapter 01</button>
           <button type="button" class="button secondary" data-glossary-filter="2" aria-pressed="false">Chapter 02</button>
+          <button type="button" class="button secondary" id="glossary-saved-filter" aria-pressed="false">Saved terms <span id="glossary-saved-count"></span></button>
         </div>
       </div>
       <p id="glossary-count" class="glossary-count" aria-live="polite"></p>
@@ -80,6 +100,21 @@
     if (!root?.querySelector(".glossary-page")) return;
     root.querySelector("#glossary-search").addEventListener("input", event => {
       search = event.target.value;
+      renderCards();
+    });
+    root.querySelector("#glossary-saved-filter").addEventListener("click", event => {
+      savedOnly = !savedOnly;
+      const button = event.currentTarget;
+      button.classList.toggle("active", savedOnly);
+      button.setAttribute("aria-pressed", String(savedOnly));
+      renderCards();
+    });
+    root.querySelector("#glossary-results").addEventListener("click", event => {
+      const button = event.target.closest("[data-glossary-save]");
+      if (!button) return;
+      const name = button.dataset.glossarySave;
+      if (saved.has(name)) saved.delete(name); else saved.add(name);
+      persistSaved();
       renderCards();
     });
     root.querySelectorAll("[data-glossary-filter]").forEach(button => {
