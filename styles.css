@@ -745,3 +745,22 @@ code { font-family: var(--mono); font-size: .92em; }
   .student-note-card p { font-size:15px; line-height:1.75; }
   .student-note-form-actions .button { min-height:44px; }
 }
+
+
+/* Accessibility pass: visible keyboard focus, readable supporting text, and stronger dark-theme links. */
+:root { --focus-ring:#164f9b; --accessible-link:#124f9f; }
+:root[data-theme="dark"] { --focus-ring:#8bd8ff; --accessible-link:#91bdff; }
+.skip-link { position:fixed; z-index:1000; top:10px; left:10px; transform:translateY(-160%); padding:12px 16px; color:#fff; background:#0b1f3a; border:2px solid #20b8e6; border-radius:5px; font-weight:800; }
+.skip-link:focus { transform:translateY(0); }
+:where(a,button,input,select,textarea,summary,[tabindex]):focus-visible { outline:3px solid var(--focus-ring) !important; outline-offset:3px !important; }
+:where(a,button,input,select,textarea,summary,[tabindex]):focus:not(:focus-visible) { outline:none; }
+.eyebrow,.chapter-card .status,.breadcrumbs,.university-tag { font-size:12px; }
+.main-nav a { font-size:14px; }
+.chapter-card p,.lesson-row p,.content-note,.privacy-note,.account-notice,.leaderboard-panel > p,.leaderboard-empty,.progress-count,.account-lesson,.account-lesson strong,.account-welcome span,.chapter-aside span { font-size:13px; }
+.card-action { font-size:13px; }
+.content-note { line-height:1.7; }
+.breadcrumbs a,.content-note a,.privacy-note a,.account-notice a,.review-back { color:var(--accessible-link); text-decoration:underline; text-underline-offset:3px; }
+[data-theme="dark"] .breadcrumbs a,[data-theme="dark"] .content-note a,[data-theme="dark"] .privacy-note a,[data-theme="dark"] .account-notice a,[data-theme="dark"] .review-back,
+:root[data-theme="dark"] .eyebrow,:root[data-theme="dark"] .card-action { color:var(--accessible-link); }
+:where(h1,h2,h3,p,li,label,button,a) { text-underline-offset:3px; }
+:where(h1,h2,h3,[id]) { scroll-margin-top:92px; }
