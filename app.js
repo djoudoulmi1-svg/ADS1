@@ -284,7 +284,7 @@ function chapterPage(id) {
 function lessonPage(id) {
   const chapter = chapters.find(item => item.id === id && item.available);
   if (!chapter) return home();
-  return `<div class="lesson-toolbar"><a class="button secondary" href="#chapter/${escapeHTML(chapter.id)}"><span aria-hidden="true">←</span> Back to chapter</a><div class="lesson-toolbar-title"><strong>${escapeHTML(chapter.title)}</strong><span>Chapter ${escapeHTML(chapter.number)} · University of Ouargla</span></div><button class="button secondary" id="mark-complete" data-chapter="${escapeHTML(chapter.id)}" type="button" ${isChapterComplete(chapter.id) ? "disabled" : ""}>${isChapterComplete(chapter.id) ? "Completed" : "Mark complete"}</button></div>
+  return `<div class="lesson-toolbar"><a class="button secondary" href="#chapter/${escapeHTML(chapter.id)}"><span aria-hidden="true">←</span> Back to chapter</a><div class="lesson-toolbar-title"><strong>${escapeHTML(chapter.title)}</strong><span>Chapter ${escapeHTML(chapter.number)} · University of Ouargla</span></div><button class="button secondary" id="mark-complete" data-chapter="${escapeHTML(chapter.id)}" type="button" ${isChapterComplete(chapter.id) ? "disabled" : ""}>${isChapterComplete(chapter.id) ? "Completed" : "Mark complete"}</button><button class="button secondary" id="reading-mode-toggle" type="button" aria-pressed="false">Focus reading</button></div>
   <iframe class="lesson-frame" ${chapter.remote ? `data-remote-src="${escapeHTML(chapter.file)}"` : `src="${escapeHTML(chapter.file)}"`} title="Chapter ${escapeHTML(chapter.number)}: ${escapeHTML(chapter.title)} lesson" allow="fullscreen"${chapter.remote ? ' sandbox="allow-scripts allow-forms"' : ""}></iframe>`;
 }
 
@@ -850,6 +850,7 @@ function aboutPage() {
 
 function render() {
   const { page, query } = route();
+  document.body.classList.remove("reading-mode");
   const arenaUI = window.ADS1ArenaUI;
   const glossaryUI = window.ADS1GlossaryUI;
   const focusUI = window.ADS1FocusTimerUI;
@@ -870,6 +871,11 @@ function render() {
   if (page === "lesson") {
     const lessonChapter = chapters.find(item => item.available && String(item.id) === query);
     if (lessonChapter) { try { localStorage.setItem("ads1.last-opened-chapter", String(lessonChapter.id)); } catch {} }
+    document.querySelector("#reading-mode-toggle").addEventListener("click", event => {
+      const enabled = document.body.classList.toggle("reading-mode");
+      event.currentTarget.setAttribute("aria-pressed", String(enabled));
+      event.currentTarget.textContent = enabled ? "Exit focus mode" : "Focus reading";
+    });
     document.querySelector("#mark-complete").addEventListener("click", markComplete);
   }
   if (page === "account" && backendClient) bindAccountForms();
