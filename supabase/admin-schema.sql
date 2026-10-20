@@ -93,9 +93,9 @@ as $$
     and exists (select 1 from public.site_owners as o where o.user_id = auth.uid());
 $$;
 
-revoke all on function public.is_active_user() from public;
-revoke all on function public.is_site_admin() from public;
-revoke all on function public.is_site_owner() from public;
+revoke all on function public.is_active_user() from public, anon;
+revoke all on function public.is_site_admin() from public, anon;
+revoke all on function public.is_site_owner() from public, anon;
 grant execute on function public.is_active_user() to authenticated;
 grant execute on function public.is_site_admin() to authenticated;
 grant execute on function public.is_site_owner() to authenticated;
