@@ -529,7 +529,7 @@
   function examBodyHTML() {
     const n = exam.n;
     if (!exam.questions) {
-      return `<p>Each attempt has <strong>8 random questions</strong> from this level's bank. Score <strong>${A.EXAM_PASS_PERCENT}% or more</strong> to clear it. You can retry as often as you like; a new attempt mixes the questions and the answers.</p>
+      return `<p>Each attempt uses the same <strong>8 curated questions in the same order</strong> for this level. Score <strong>${A.EXAM_PASS_PERCENT}% or more</strong> to clear it. Retry to review this fixed set again.</p>
         ${levelRecord("exam", n) ? `<p class="panel-note">Your best score so far: <strong>${levelRecord("exam", n).best}%</strong>.</p>` : ""}
         <button type="button" class="button" data-exam="start">Start an attempt</button>`;
     }
