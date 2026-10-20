@@ -1,6 +1,6 @@
 # Site Administration
 
-The site has one protected owner account. The owner alone can grant or revoke administrator access. Appointed administrators can upload chapters, hide or restore them, and disable or reactivate student accounts. Permanent chapter deletion is disabled; only the owner can appoint or remove administrators. The website never receives a service-role key.
+The site has one protected owner account. The owner alone can grant or revoke administrator access. Appointed administrators can upload, hide, restore, or permanently delete uploaded chapters; deactivate, reactivate, or permanently delete student accounts; and manage glossary terms and public social links. Only the owner can appoint or remove administrators. The website never receives a service-role key.
 
 ## Enable the administrator features
 
@@ -38,4 +38,6 @@ The browser can upload one `.html` lesson file per chapter, numbered 3–99, up 
 For an existing deployment, run the updated `supabase/admin-schema.sql` in the Supabase SQL Editor to refresh the role policies, then run `supabase/migrations/20261013_removed_chapters.sql` if it has not already been applied. Deploy the updated `admin-tools` function and publish the site. The website deployment does not deploy Edge Functions automatically. The table records visibility for bundled chapters 1 and 2; regular visitors can read those IDs, while only the service-role Edge Function can change the records. Uploaded chapters use the existing `available` flag in `chapter_catalog`.
 
 Disabling a student blocks future sign-ins and removes that student's display name and percentage from the progress board. Row-level security also blocks access to their profile and lesson progress. The owner and administrators may reactivate students. Administrator accounts must have their administrator access revoked by the owner before they can be disabled. The owner role can only be reassigned through the private Supabase SQL Editor.
+
+Admins can permanently delete student Auth accounts. This cascades the student's profile, private notes, and progress. The function blocks deletion of the owner and administrator accounts, and records a server-only tombstone so an unexpired access token cannot regain access. Admins can add or remove supplemental glossary terms and HTTPS social links; the links appear in the site footer.
 
