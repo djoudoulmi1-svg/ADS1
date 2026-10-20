@@ -6,3 +6,6 @@ verify_jwt = true
 
 [functions.telegram-study-assistant]
 verify_jwt = false
+
+[functions.chapter-quiz]
+verify_jwt = true
