@@ -1027,11 +1027,13 @@
     ]
   };
 
-  function makeExamAttempt(levelNumber, rng = Math.random, count = 8) {
-    const pool = shuffle(EXAM_BANK[levelNumber], rng).slice(0, count);
-    return pool.map(item => {
-      const options = shuffle([{ text: item.a, ok: true }, ...item.w.map(text => ({ text, ok: false }))], rng);
-      return { q: item.q, options: options.map(o => o.text), correct: options.findIndex(o => o.ok), why: item.why };
+  function makeExamAttempt(levelNumber, _rng = Math.random, count = 8) {
+    const pool = (EXAM_BANK[levelNumber] || []).slice(0, count);
+    return pool.map((item, index) => {
+      const options = item.w.slice();
+      const correctIndex = index % (options.length + 1);
+      options.splice(correctIndex, 0, item.a);
+      return { q: item.q, options, correct: correctIndex, why: item.why };
     });
   }
   function gradeExam(questions, answers) {
