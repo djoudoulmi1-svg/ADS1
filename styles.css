@@ -1064,3 +1064,22 @@ body.reading-mode .lesson-frame { height: calc(100vh - 78px); min-height: 0; }
 .chapter-practice-link { margin: 0 0 1rem; }
 [data-theme="dark"] .chapter-practice-hub, [data-theme="dark"] .chapter-practice-card { --line: #26384e; --surface: #101e30; }
 @media (prefers-reduced-motion: reduce) { .chapter-practice-card { transition: none; } .chapter-practice-card:hover, .chapter-practice-card:focus-visible { transform: none; } }
+
+
+/* Student-authored study plan */
+.plan-builder { display: grid; gap: 14px; margin: 22px 0; padding: clamp(16px, 3vw, 24px); background: var(--white); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.plan-builder h2 { margin: 0; font-size: 20px; }
+.plan-builder label { display: grid; gap: 7px; color: var(--ink); font-weight: 700; }
+.plan-builder input, .plan-builder textarea, .plan-builder select { width: 100%; min-height: 44px; padding: 10px 12px; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 7px; font: inherit; }
+.plan-builder textarea { min-height: 88px; resize: vertical; }
+.plan-builder-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.plan-builder-actions, .plan-task-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.plan-task-actions { flex: 0 0 auto; }
+.plan-task-actions .text-button { min-height: 40px; padding: 6px 9px; }
+.plan-empty { padding: 16px; color: var(--muted); background: var(--paper); border-radius: 9px; }
+[data-theme="dark"] .plan-builder { background: var(--white); }
+[data-theme="dark"] .plan-builder input, [data-theme="dark"] .plan-builder textarea, [data-theme="dark"] .plan-builder select { background: var(--paper); }
+@media (max-width: 620px) {
+  .plan-builder-row { grid-template-columns: 1fr; }
+  .plan-task-actions { margin-left: 33px; }
+}
