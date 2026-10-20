@@ -142,6 +142,11 @@ Deno.serve(async request => {
       console.error("Could not remove chapter progress:", progressError.message);
       return jsonResponse({ error: "The lesson file was removed, but saved progress could not be cleaned up. Contact the site owner." }, 500);
     }
+    const { error: glossaryError } = await adminClient.from("glossary_entries").delete().eq("chapter_id", chapterId);
+    if (glossaryError) {
+      console.error("Could not remove glossary entries for deleted chapter:", glossaryError.message);
+      return jsonResponse({ error: "The chapter file was removed, but related glossary entries could not be cleaned up. Contact the site owner." }, 500);
+    }
     const { error: catalogError } = await adminClient.from("chapter_catalog").delete().eq("id", chapterId);
     if (catalogError) {
       console.error("Could not remove chapter catalog entry:", catalogError.message);
