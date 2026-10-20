@@ -138,7 +138,7 @@ create table if not exists public.chapter_quizzes (
   ),
   correct_index integer not null check (correct_index between 0 and 5),
   explanation text not null default '' check (char_length(explanation) <= 1000),
-  created_by uuid not null references auth.users(id),
+  created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
 alter table public.chapter_quizzes enable row level security;
