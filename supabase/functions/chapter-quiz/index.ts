@@ -41,10 +41,11 @@ Deno.serve(async request => {
   const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
-  const [{ data: disabled }, { data: deleted }] = await Promise.all([
+  const [{ data: disabled, error: disabledError }, { data: deleted, error: deletedError }] = await Promise.all([
     serviceClient.from("disabled_users").select("user_id").eq("user_id", user.id).maybeSingle(),
     serviceClient.from("deleted_user_ids").select("user_id").eq("user_id", user.id).maybeSingle()
   ]);
+  if (disabledError || deletedError) return jsonResponse({ error: "Could not verify account status" }, 503);
   if (disabled || deleted) return jsonResponse({ error: "This account is not active" }, 403);
 
   let body: Record<string, unknown>;
@@ -84,7 +85,7 @@ Deno.serve(async request => {
   if (body.action === "answer") {
     const quizId = String(body.quizId || "");
     const selectedIndex = body.selectedIndex;
-    if (!/^[0-9a-f-]{36}$/i.test(quizId) || !Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex > 5) {
+    if (!/^[0-9a-f-]{36}$/i.test(quizId) || typeof selectedIndex !== "number" || !Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex > 5) {
       return jsonResponse({ error: "Choose one of the listed answers" }, 400);
     }
     const { data: quiz, error } = await serviceClient.from("chapter_quizzes")
