@@ -1048,3 +1048,19 @@ body.reading-mode .lesson-frame { height: calc(100vh - 78px); min-height: 0; }
   .chapter-quiz-panel { width: calc(100% - 1.25rem); margin: 1.25rem auto 2.5rem; padding: 1rem; }
   .admin-quiz-options { grid-template-columns: 1fr; }
 }
+
+
+/* Chapter-organized Arena practice */
+.chapter-practice-hub { margin: 1.5rem 0 2rem; padding: clamp(1.1rem, 2.4vw, 1.7rem); border: 1px solid var(--line, #dce4ef); border-radius: 18px; background: var(--surface, #fff); }
+.chapter-practice-hub h2 { margin: .3rem 0 .4rem; }
+.chapter-practice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: .8rem; margin-top: 1rem; }
+.chapter-practice-card { display: grid; gap: .45rem; padding: 1rem; border: 1px solid var(--line, #dce4ef); border-radius: 12px; color: inherit; text-decoration: none; background: var(--surface, #fff); transition: border-color .18s ease, transform .18s ease; }
+.chapter-practice-card:hover, .chapter-practice-card:focus-visible { border-color: var(--blue); transform: translateY(-2px); }
+.chapter-practice-card strong { font-size: 1.05rem; }
+.chapter-practice-card > span:last-child { color: var(--blue); font-weight: 700; }
+.chapter-practice-number { color: var(--blue); font-size: .75rem; font-weight: 800; letter-spacing: .08em; }
+.chapter-practice-page > .button { margin-top: 1rem; }
+.chapter-practice-panel .question { margin: 1rem 0; }
+.chapter-practice-link { margin: 0 0 1rem; }
+[data-theme="dark"] .chapter-practice-hub, [data-theme="dark"] .chapter-practice-card { --line: #26384e; --surface: #101e30; }
+@media (prefers-reduced-motion: reduce) { .chapter-practice-card { transition: none; } .chapter-practice-card:hover, .chapter-practice-card:focus-visible { transform: none; } }
