@@ -125,3 +125,22 @@ create policy "Students can delete their own notes"
   using (auth.uid() = user_id);
 
 grant select, insert, update, delete on public.student_notes to authenticated;
+
+
+-- Quiz answer keys are private. Only Edge Functions use the service role to read or write them.
+create table if not exists public.chapter_quizzes (
+  id uuid primary key default gen_random_uuid(),
+  chapter_id text not null check (char_length(chapter_id) between 1 and 40),
+  question text not null check (char_length(question) between 5 and 500),
+  options jsonb not null check (
+    jsonb_typeof(options) = 'array'
+    and jsonb_array_length(options) between 2 and 6
+  ),
+  correct_index integer not null check (correct_index between 0 and 5),
+  explanation text not null default '' check (char_length(explanation) <= 1000),
+  created_by uuid not null references auth.users(id),
+  created_at timestamptz not null default now()
+);
+alter table public.chapter_quizzes enable row level security;
+revoke all on public.chapter_quizzes from anon, authenticated;
+grant all on public.chapter_quizzes to service_role;
