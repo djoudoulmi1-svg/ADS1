@@ -1,7 +1,7 @@
 /* Searchable ADS1 concept glossary, kept in sync with the hash-based site router. */
 (() => {
   "use strict";
-  const entries = [
+  const bundledEntries = [
     ["Algorithm", "A finite, ordered set of clear steps for solving a problem.", 1],
     ["Program", "An algorithm expressed in a programming language so a computer can execute it.", 1],
     ["Input", "Data supplied to a computer or algorithm for processing.", 1],
@@ -28,6 +28,7 @@
     ["Swap", "Exchange two values, often using a temporary variable to preserve one value.", 2],
     ["Trace table", "A table that records variable values step by step while an algorithm runs.", 2]
   ];
+  let entries = [...bundledEntries];
 
   const escape = value => String(value).replace(/[&<>"']/g, char =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
@@ -46,6 +47,25 @@
   }
   function persistSaved() {
     try { localStorage.setItem(SAVED_KEY, JSON.stringify([...saved])); } catch { /* ignore unavailable storage */ }
+  }
+  function setCustomEntries(rows) {
+    const builtInTerms = new Set(bundledEntries.map(([term]) => term.toLocaleLowerCase()));
+    const additions = (Array.isArray(rows) ? rows : [])
+      .filter(row => row && row.term && row.definition && row.chapter_id && !builtInTerms.has(String(row.term).toLocaleLowerCase()))
+      .map(row => [String(row.term), String(row.definition), String(row.chapter_id)]);
+    const seen = new Set(builtInTerms);
+    entries = [...bundledEntries, ...additions.filter(([term]) => {
+      const key = term.toLocaleLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })];
+    saved = readSaved();
+    renderCards();
+  }
+  function hasTerm(name) {
+    const key = String(name || "").trim().toLocaleLowerCase();
+    return entries.some(([term]) => term.toLocaleLowerCase() === key);
   }
   function visibleEntries() {
     const term = search.trim().toLocaleLowerCase();
@@ -139,7 +159,7 @@
     bind();
   }
 
-  window.ADS1GlossaryUI = { view: page, bind };
+  window.ADS1GlossaryUI = { view: page, bind, setCustomEntries, hasTerm };
   window.addEventListener("hashchange", show);
   show();
 })();
