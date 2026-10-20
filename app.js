@@ -948,6 +948,44 @@ async function removeAdminQuiz(event) {
   setAdminNotice("Quiz question removed.", "success");
 }
 
+window.ADS1StudyPlanStore = {
+  isSignedIn: () => Boolean(backendClient && currentSession),
+  userId: () => currentSession?.user?.id || null,
+  async list() {
+    if (!backendClient || !currentSession) return { error: "Sign in to load your private study plan." };
+    const { data, error } = await backendClient.from("student_plan_tasks")
+      .select("id, title, detail, chapter_id, target_date, completed, created_at, updated_at")
+      .eq("user_id", currentSession.user.id).order("created_at", { ascending: true });
+    return error ? { error: error.message } : { tasks: data || [] };
+  },
+  async save(task, taskId = null) {
+    if (!backendClient || !currentSession) return { error: "Sign in to save your private study plan." };
+    const values = {
+      title: String(task.title || "").trim(),
+      detail: String(task.detail || "").trim(),
+      chapter_id: task.chapter_id ? String(task.chapter_id) : null,
+      target_date: task.target_date || null,
+      updated_at: new Date().toISOString()
+    };
+    if (!values.title || values.title.length > 120 || values.detail.length > 1000) return { error: "Enter a task title and keep the details under 1,000 characters." };
+    const result = taskId
+      ? await backendClient.from("student_plan_tasks").update(values).eq("id", taskId).eq("user_id", currentSession.user.id).select("id").maybeSingle()
+      : await backendClient.from("student_plan_tasks").insert({ ...values, user_id: currentSession.user.id, completed: false }).select("id").single();
+    return result.error ? { error: result.error.message } : { ok: true };
+  },
+  async setCompleted(taskId, completed) {
+    if (!backendClient || !currentSession) return { error: "Sign in to update your private study plan." };
+    const { error } = await backendClient.from("student_plan_tasks").update({ completed: Boolean(completed), updated_at: new Date().toISOString() })
+      .eq("id", taskId).eq("user_id", currentSession.user.id);
+    return error ? { error: error.message } : { ok: true };
+  },
+  async remove(taskId) {
+    if (!backendClient || !currentSession) return { error: "Sign in to update your private study plan." };
+    const { error } = await backendClient.from("student_plan_tasks").delete().eq("id", taskId).eq("user_id", currentSession.user.id);
+    return error ? { error: error.message } : { ok: true };
+  }
+};
+
 window.ADS1ChapterQuizAPI = {
   async list(chapterId) {
     if (!backendClient || !currentSession) return { error: "Sign in to load the exercises for this chapter." };
