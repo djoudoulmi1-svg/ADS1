@@ -334,6 +334,7 @@ function chapterPage(id) {
       <p>${escapeHTML(chapter.description)}</p>
     </div><aside class="chapter-aside"><span>Course material</span><strong>${escapeHTML(chapter.sectionCount)}</strong></aside></div>
     <div class="lesson-row"><span class="lesson-index">01</span><div><h2>${escapeHTML(chapter.title)}</h2><p>Integrated lesson · source content and activities preserved</p></div><a class="button" href="#lesson/${escapeHTML(chapter.id)}">${completed ? "Continue lesson" : "Start lesson"}<span class="arrow" aria-hidden="true">→</span></a></div>
+    <a class="button secondary chapter-practice-link" href="#arena/chapter/${encodeURIComponent(chapter.id)}">Practise this chapter in Arena <span class="arrow" aria-hidden="true">→</span></a>
     <div class="content-note">The learning outcomes and section list are presented in the lesson as supplied. ${currentSession ? "Your completion status is saved to your account." : "Without an account, completion is saved only in this browser."}${chapter.id === "1" ? " The supplied page labels this lesson Chapter 2, while its cited PDF title identifies it as Chapter 1; this hub lists it as Chapter 1 to keep the separately supplied Sequential Algorithm lesson as Chapter 2." : ""}</div>
   </section>`;
 }
@@ -946,6 +947,19 @@ async function removeAdminQuiz(event) {
   render();
   setAdminNotice("Quiz question removed.", "success");
 }
+
+window.ADS1ChapterQuizAPI = {
+  async list(chapterId) {
+    if (!backendClient || !currentSession) return { quizzes: [] };
+    const { data, error } = await backendClient.functions.invoke("chapter-quiz", { body: { action: "list", chapterId: String(chapterId) } });
+    return error ? { error: error.message } : data;
+  },
+  async answer(quizId, selectedIndex) {
+    if (!backendClient || !currentSession) return { error: "Sign in to check your answer." };
+    const { data, error } = await backendClient.functions.invoke("chapter-quiz", { body: { action: "answer", quizId, selectedIndex } });
+    return error ? { error: error.message } : data;
+  }
+};
 
 async function loadChapterQuizzes(chapterId) {
   activeChapterQuizzes = { chapterId: String(chapterId), items: [], feedback: {} };
@@ -1621,6 +1635,7 @@ async function loadChapterCatalog() {
   }
 
   chapters = catalog;
+  window.ADS1ChapterCatalog = catalog.map(chapter => ({ id: String(chapter.id), number: String(chapter.number), title: String(chapter.title), available: Boolean(chapter.available) }));
   render();
 }
 menuToggle.addEventListener("click", () => {
