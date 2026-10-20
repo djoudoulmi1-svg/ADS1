@@ -957,18 +957,20 @@
     return frames[frames.length - 1].vars;
   }
 
-  function makeTraceChallenge(levelNumber, rng = Math.random, count = 3) {
-    const ids = TRACKS.trace.levels[levelNumber - 1].programs;
-    const order = shuffle(ids, rng);
+  const ADS1_TRACE_SEED = 20261020;
+  function makeTraceChallenge(levelNumber, _rng = Math.random, count = 3) {
+    const ids = TRACKS.trace.levels[levelNumber - 1].programs.slice(0, count);
     const items = [];
-    for (let i = 0; i < count; i++) {
-      const program = TRACE_PROGRAMS[order[i % order.length]];
+    ids.forEach((id, index) => {
+      const program = TRACE_PROGRAMS[id];
+      const rng = mulberry32(ADS1_TRACE_SEED + levelNumber * 101 + index * 17);
       const inputs = randomInputs(program, rng);
-      const varName = program.answers[randInt(rng, 0, program.answers.length - 1)];
+      const varName = program.answers[(levelNumber + index - 1) % program.answers.length];
       items.push({ programId: program.id, inputs, varName, expected: finalVars(program, inputs)[varName] });
-    }
+    });
     return items;
   }
+
   function gradeNumber(given, expected) {
     const text = String(given ?? "").trim().replace(",", ".");
     if (text === "" || Number.isNaN(Number(text))) return false;
