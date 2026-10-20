@@ -1010,3 +1010,5 @@ body.reading-mode .lesson-frame { height: calc(100vh - 78px); min-height: 0; }
   .admin-content-row { align-items:flex-start; }
   .site-footer .site-social-links { flex-basis:100%; }
 }
+
+.site-social-links[hidden] { display:none; }
