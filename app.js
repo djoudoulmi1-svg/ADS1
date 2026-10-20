@@ -950,7 +950,7 @@ async function removeAdminQuiz(event) {
 
 window.ADS1ChapterQuizAPI = {
   async list(chapterId) {
-    if (!backendClient || !currentSession) return { quizzes: [] };
+    if (!backendClient || !currentSession) return { error: "Sign in to load the exercises for this chapter." };
     const { data, error } = await backendClient.functions.invoke("chapter-quiz", { body: { action: "list", chapterId: String(chapterId) } });
     return error ? { error: error.message } : data;
   },
