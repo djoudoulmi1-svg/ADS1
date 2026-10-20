@@ -41,3 +41,9 @@ Disabling a student blocks future sign-ins and removes that student's display na
 
 Admins can permanently delete student Auth accounts. This cascades the student's profile, private notes, and progress. The function blocks deletion of the owner and administrator accounts, and records a server-only tombstone so an unexpired access token cannot regain access. Admins can add or remove supplemental glossary terms and HTTPS social links; the links appear in the site footer.
 
+
+## Chapter quizzes
+
+Administrators can add multiple choice questions in **Account → Administrator tools → Create a chapter quiz**. Each question is linked to one visible chapter, has four answer options, one selected correct answer, and an optional explanation. Administrators can remove questions from the list. Signed-in students answer from the bottom of the corresponding lesson and see the result and explanation after submission. The answer key is kept in the private `chapter_quizzes` table and is returned only by the authenticated `chapter-quiz` Edge Function after a student submits an answer.
+
+The `chapter_quizzes` table is included in `supabase/schema.sql`; the production project has this table applied. Deploy `admin-tools` and `chapter-quiz` with JWT verification enabled. `supabase/config.toml` records the `chapter-quiz` JWT setting.
