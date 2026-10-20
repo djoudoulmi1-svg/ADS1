@@ -264,7 +264,7 @@
           (picked === optionIndex ? " checked" : "") + (state.results ? " disabled" : "") + '><span class="letter" aria-hidden="true">' + "ABCD"[optionIndex] + '</span><span>' + esc(option) + '</span></label>';
       }).join("");
       const review = result ? '<p class="verdict ' + (result.isCorrect ? "ok" : "bad") + '">' +
-        (result.isCorrect ? "Correct." : "Not quite. Correct answer: " + esc(result.correctOption)) +
+        (result.unanswered ? "Not answered." : result.error ? esc(result.error) : result.isCorrect ? "Correct." : "Not quite. Correct answer: " + esc(result.correctOption)) +
         (result.explanation ? " " + esc(result.explanation) : "") + '</p>' : "";
       return '<fieldset class="question"><legend><span class="q-no">' + (index + 1) + '</span>' + esc(question.question) + '</legend>' + optionsHTML + review + '</fieldset>';
     }).join("");
@@ -298,6 +298,7 @@
           }));
         }
       } catch { state.error = "Please sign in and try again."; }
+      if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
     }
     if (!state.questions.length && (state.chapterId === "1" || state.chapterId === "2")) {
       const bank = A.EXAM_BANK[state.chapterId === "1" ? 1 : 2] || [];
@@ -308,6 +309,7 @@
         return { question: item.q, options, correctIndex, explanation: item.why };
       });
     }
+    if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
     state.loading = false;
     renderChapterPractice(panel);
     panel.addEventListener("change", event => {
@@ -333,6 +335,7 @@
         const isCorrect = selected === question.correctIndex;
         return { isCorrect, correctIndex: question.correctIndex, correctOption: question.options[question.correctIndex], explanation: question.explanation || "" };
       }));
+      if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
       state.results = results;
       renderChapterPractice(panel);
     });
