@@ -352,7 +352,7 @@ function lessonPage(id) {
   </nav>`;
   return `<div class="lesson-toolbar"><a class="button secondary" href="#chapter/${escapeHTML(chapter.id)}"><span aria-hidden="true">←</span> Back to chapter</a><div class="lesson-toolbar-title"><strong>${escapeHTML(chapter.title)}</strong><span>Chapter ${escapeHTML(chapter.number)} · University of Ouargla</span></div><button class="button secondary" id="mark-complete" data-chapter="${escapeHTML(chapter.id)}" type="button" ${isChapterComplete(chapter.id) ? "disabled" : ""}>${isChapterComplete(chapter.id) ? "Completed" : "Mark complete"}</button><button class="button secondary" id="reading-mode-toggle" type="button" aria-pressed="false">Focus reading</button></div>
   ${chapterNav}
-  <iframe class="lesson-frame" data-chapter-id="${escapeHTML(chapter.id)}" ${chapter.remote ? `data-remote-src="${escapeHTML(chapter.file)}"` : `src="${escapeHTML(chapter.file)}"`} title="Chapter ${escapeHTML(chapter.number)}: ${escapeHTML(chapter.title)} lesson" allow="fullscreen"${chapter.remote ? ' sandbox="allow-scripts allow-forms"' : ""}></iframe>  <section class="chapter-quiz-panel" id="chapter-quiz-panel" data-chapter-id="${escapeHTML(chapter.id)}" aria-labelledby="chapter-quiz-heading"><span class="eyebrow">Check your understanding</span><h2 id="chapter-quiz-heading">Chapter quiz</h2><p class="quiz-loading" role="status">Loading questions…</p></section>`;
+  <iframe class="lesson-frame" data-chapter-id="${escapeHTML(chapter.id)}" ${chapter.remote ? `data-remote-src="${escapeHTML(chapter.file)}"` : `src="${escapeHTML(chapter.file)}"`} title="Chapter ${escapeHTML(chapter.number)}: ${escapeHTML(chapter.title)} lesson" allow="fullscreen"${chapter.remote ? ' sandbox="allow-scripts allow-forms"' : ""}></iframe>\n  <section class="chapter-quiz-panel" id="chapter-quiz-panel" data-chapter-id="${escapeHTML(chapter.id)}" aria-labelledby="chapter-quiz-heading"><span class="eyebrow">Check your understanding</span><h2 id="chapter-quiz-heading">Chapter quiz</h2><p class="quiz-loading" role="status">Loading questions…</p></section>`;
 }
 
 // Supabase Storage serves uploaded .html files as text/plain, so loading the
@@ -692,6 +692,20 @@ function adminPanel() {
         <button class="button" type="submit">Add social link</button>
       </form>
       <div class="admin-content-list" id="admin-social-list">${socialRows || `<p class="admin-help">No social links added yet.</p>`}</div>
+    </section>
+
+    <section class="admin-content-manager admin-quiz-manager" aria-labelledby="admin-quiz-heading">
+      <h3 id="admin-quiz-heading">Create a chapter quiz</h3>
+      <p class="admin-help">Write a question, four answer options, and select the correct one. Students see the answer after submitting.</p>
+      <form id="admin-quiz-form" class="admin-content-form">
+        <label>Chapter<select name="chapter_id" required>${glossaryChapterOptions || "<option value=\"\" disabled>No visible chapters available</option>"}</select></label>
+        <label>Question<textarea name="question" maxlength="500" rows="2" required></textarea></label>
+        <div class="admin-quiz-options"><label>Option A<input name="option0" maxlength="240" required></label><label>Option B<input name="option1" maxlength="240" required></label><label>Option C<input name="option2" maxlength="240" required></label><label>Option D<input name="option3" maxlength="240" required></label></div>
+        <label>Correct option<select name="correct_index" required><option value="0">Option A</option><option value="1">Option B</option><option value="2">Option C</option><option value="3">Option D</option></select></label>
+        <label>Explanation (optional)<textarea name="explanation" maxlength="1000" rows="2"></textarea></label>
+        <button class="button" type="submit" ${glossaryChapterOptions ? "" : "disabled"}>Add quiz question</button>
+      </form>
+      <div class="admin-content-list" id="admin-quiz-list">${adminQuizRows()}</div>
     </section>
 
     <div class="admin-chapters-heading"><h3>Chapter management</h3></div>
