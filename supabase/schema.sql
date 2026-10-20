@@ -159,6 +159,7 @@ create table if not exists public.student_plan_tasks (
   updated_at timestamptz not null default now()
 );
 alter table public.student_plan_tasks enable row level security;
+revoke all on public.student_plan_tasks from anon;
 drop policy if exists "Students can read their own plan tasks" on public.student_plan_tasks;
 create policy "Students can read their own plan tasks"
   on public.student_plan_tasks for select to authenticated using (auth.uid() = user_id);
