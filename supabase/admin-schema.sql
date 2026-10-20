@@ -15,6 +15,13 @@ create table if not exists public.disabled_users (
   disabled_by uuid references auth.users (id) on delete set null
 );
 
+-- Keep an auth-independent tombstone so a deleted user's still-valid JWT cannot regain access before expiry.
+create table if not exists public.deleted_user_ids (
+  user_id uuid primary key,
+  deleted_at timestamptz not null default now(),
+  deleted_by uuid
+);
+
 create table if not exists public.chapter_catalog (
   id text primary key check (id ~ '^[a-z0-9][a-z0-9_-]{0,39}$'),
   number text not null check (char_length(number) between 1 and 12),
@@ -29,14 +36,17 @@ create table if not exists public.chapter_catalog (
 alter table public.site_admins enable row level security;
 alter table public.site_owners enable row level security;
 alter table public.disabled_users enable row level security;
+alter table public.deleted_user_ids enable row level security;
 alter table public.chapter_catalog enable row level security;
 
 revoke all on table public.site_admins from anon, authenticated;
 revoke all on table public.site_owners from anon, authenticated;
-revoke all on table public.disabled_users from anon, authenticated;
+revoke all on table public.disabled_users from public, anon, authenticated;
+revoke all on table public.deleted_user_ids from public, anon, authenticated;
 grant all on table public.site_admins to service_role;
 grant all on table public.site_owners to service_role;
 grant all on table public.disabled_users to service_role;
+grant all on table public.deleted_user_ids to service_role;
 
 create or replace function public.is_active_user()
 returns boolean
@@ -49,6 +59,10 @@ as $$
     and not exists (
       select 1 from public.disabled_users as d
       where d.user_id = auth.uid()
+    )
+    and not exists (
+      select 1 from public.deleted_user_ids as x
+      where x.user_id = auth.uid()
     );
 $$;
 
