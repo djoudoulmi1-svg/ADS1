@@ -983,3 +983,30 @@ body.reading-mode .lesson-frame { height: calc(100vh - 78px); min-height: 0; }
   .lesson-chapter-nav-count { display: none; }
   .lesson-chapter-nav a { min-height: 44px; font-size: 11px; }
 }
+
+
+/* Admin managed glossary and site community links. */
+.admin-content-manager { margin-top:18px; padding:18px; background:var(--paper); border:1px solid var(--line); border-radius:8px; }
+.admin-content-manager h3 { margin:0 0 10px; color:var(--ink); font:700 16px "Manrope",sans-serif; }
+.admin-content-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; align-items:end; }
+.admin-content-form label { display:grid; gap:5px; color:var(--ink); font-size:12px; font-weight:700; }
+.admin-content-form input,.admin-content-form textarea,.admin-content-form select { width:100%; min-height:42px; padding:9px 11px; color:var(--ink); background:var(--white); border:1px solid var(--line); border-radius:5px; font:inherit; }
+.admin-content-form textarea { resize:vertical; }
+.admin-content-form button { min-height:42px; }
+.admin-social-form { grid-template-columns:minmax(140px,.7fr) minmax(0,1.6fr) auto; }
+.admin-content-list { display:grid; gap:0; margin-top:12px; }
+.admin-content-row { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 0; border-top:1px solid var(--line); }
+.admin-content-row > div { min-width:0; }
+.admin-content-row strong,.admin-content-row span { display:block; overflow-wrap:anywhere; }
+.admin-content-row strong { color:var(--ink); font-size:13px; }
+.admin-content-row span { margin-top:3px; color:var(--muted); font-size:12px; line-height:1.45; }
+.admin-delete-student { color:#a72f38; border-color:#c75a60; }
+.site-social-links { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; }
+.site-social-links a { color:var(--blue); font-size:12px; font-weight:700; }
+.site-social-links a:hover { text-decoration:underline; text-underline-offset:3px; }
+@media(max-width:760px) {
+  .admin-content-manager { padding:14px; }
+  .admin-content-form,.admin-social-form { grid-template-columns:1fr; }
+  .admin-content-row { align-items:flex-start; }
+  .site-footer .site-social-links { flex-basis:100%; }
+}
