@@ -144,3 +144,31 @@ create table if not exists public.chapter_quizzes (
 alter table public.chapter_quizzes enable row level security;
 revoke all on public.chapter_quizzes from anon, authenticated;
 grant all on public.chapter_quizzes to service_role;
+
+
+-- Each student owns a personal, editable study plan.
+create table if not exists public.student_plan_tasks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null check (char_length(title) between 1 and 120),
+  detail text not null default '' check (char_length(detail) <= 1000),
+  chapter_id text check (chapter_id is null or char_length(chapter_id) between 1 and 40),
+  target_date date,
+  completed boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.student_plan_tasks enable row level security;
+drop policy if exists "Students can read their own plan tasks" on public.student_plan_tasks;
+create policy "Students can read their own plan tasks"
+  on public.student_plan_tasks for select to authenticated using (auth.uid() = user_id);
+drop policy if exists "Students can create their own plan tasks" on public.student_plan_tasks;
+create policy "Students can create their own plan tasks"
+  on public.student_plan_tasks for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "Students can update their own plan tasks" on public.student_plan_tasks;
+create policy "Students can update their own plan tasks"
+  on public.student_plan_tasks for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "Students can delete their own plan tasks" on public.student_plan_tasks;
+create policy "Students can delete their own plan tasks"
+  on public.student_plan_tasks for delete to authenticated using (auth.uid() = user_id);
+grant select, insert, update, delete on public.student_plan_tasks to authenticated;
