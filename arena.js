@@ -147,6 +147,7 @@
 
   function current() {
     const [, trackId, levelText] = hashParts();
+    if (trackId === "chapter") return { kind: "chapter-practice", chapterId: levelText || "" };
     const track = A.TRACKS[trackId];
     if (!track) return { kind: "overview" };
     const n = Number(levelText);
@@ -159,6 +160,7 @@
   function view() {
     const where = current();
     if (where.kind === "overview") return overviewPage();
+    if (where.kind === "chapter-practice") return chapterPracticePage(where.chapterId);
     if (where.kind === "track") return trackPage(where.track, where.message);
     if (where.track.id === "trace") return tracePage(where.n);
     if (where.track.id === "exam") return examPage(where.n);
@@ -169,6 +171,7 @@
     const root = document.querySelector("#app .arena-shell");
     if (!root) return;
     const where = current();
+    if (where.kind === "chapter-practice") { bindChapterPractice(root, where.chapterId); return; }
     if (where.kind === "track" && where.track.id === "clab") bindPlayground(root);
     if (where.kind !== "level") return;
     if (where.track.id === "trace") bindTrace(root, where.n);
@@ -214,12 +217,127 @@
     return "Your results are saved to your account.";
   }
 
+  const chapterPracticeState = { chapterId: "", questions: [], answers: [], results: null, loading: false };
+
+  function chapterList() {
+    const chapters = window.ADS1ChapterCatalog;
+    if (Array.isArray(chapters) && chapters.length) return chapters.filter(chapter => chapter.available !== false);
+    return [
+      { id: "1", number: "01", title: "Introduction to Programming", available: true },
+      { id: "2", number: "02", title: "Sequential Algorithm", available: true }
+    ];
+  }
+
+  function chapterPracticeCards() {
+    return '<section class="chapter-practice-hub" aria-labelledby="chapter-practice-heading"><span class="eyebrow">Chapter-linked exercises</span><h2 id="chapter-practice-heading">Practise by chapter</h2><p>Each chapter opens its own fixed, relevant exercise set. Questions follow a consistent order instead of being mixed randomly.</p><div class="chapter-practice-grid">' +
+      chapterList().map(chapter => '<a class="chapter-practice-card" href="#arena/chapter/' + encodeURIComponent(chapter.id) + '"><span class="chapter-practice-number">CHAPTER ' + esc(chapter.number || chapter.id) + '</span><strong>' + esc(chapter.title) + '</strong><span>Open chapter exercises →</span></a>').join("") +
+      '</div></section>';
+  }
+
+  function chapterPracticePage(chapterId) {
+    const chapter = chapterList().find(item => String(item.id) === String(chapterId));
+    if (!chapter) return '<section class="container arena-shell fade-in"><h1>Chapter not available</h1><a class="button secondary" href="#arena">Back to Arena</a></section>';
+    return '<section class="container arena-shell fade-in chapter-practice-page">' +
+      crumbs([{ label: "Home", href: "#home" }, { label: "Arena", href: "#arena" }, { label: "Chapter " + esc(chapter.number || chapter.id) }]) +
+      '<span class="eyebrow">Fixed chapter exercise set</span><h1>Chapter ' + esc(chapter.number || chapter.id) + ' · ' + esc(chapter.title) + '</h1>' +
+      '<p class="arena-intro">These questions are selected for this chapter and always appear in the same order. Answer them, then review the explanations.</p>' +
+      '<section class="arena-panel chapter-practice-panel" id="chapter-practice-panel" data-chapter-id="' + esc(chapter.id) + '" aria-live="polite"><p role="status">Loading chapter exercises…</p></section>' +
+      '<a class="button secondary" href="#lesson/' + encodeURIComponent(chapter.id) + '">Open this chapter lesson</a></section>';
+  }
+
+  function renderChapterPractice(panel) {
+    const state = chapterPracticeState;
+    if (state.loading) { panel.innerHTML = '<p role="status">Loading chapter exercises…</p>'; return; }
+    if (!state.questions.length) {
+      panel.innerHTML = '<h2>Exercises are being prepared</h2><p>No exercises have been added to this chapter yet. The site administrator can add its questions from Account → Administrator tools.</p>';
+      return;
+    }
+    const questionsHTML = state.questions.map((question, index) => {
+      const picked = state.answers[index];
+      const result = state.results?.[index];
+      const optionsHTML = question.options.map((option, optionIndex) => {
+        let cls = "";
+        if (result) cls = optionIndex === result.correctIndex ? "right" : picked === optionIndex ? "wrong" : "";
+        return '<label class="option ' + cls + '"><input type="radio" name="chapter-q' + index + '" value="' + optionIndex + '"' +
+          (picked === optionIndex ? " checked" : "") + (state.results ? " disabled" : "") + '><span class="letter" aria-hidden="true">' + "ABCD"[optionIndex] + '</span><span>' + esc(option) + '</span></label>';
+      }).join("");
+      const review = result ? '<p class="verdict ' + (result.isCorrect ? "ok" : "bad") + '">' +
+        (result.isCorrect ? "Correct." : "Not quite. Correct answer: " + esc(result.correctOption)) +
+        (result.explanation ? " " + esc(result.explanation) : "") + '</p>' : "";
+      return '<fieldset class="question"><legend><span class="q-no">' + (index + 1) + '</span>' + esc(question.question) + '</legend>' + optionsHTML + review + '</fieldset>';
+    }).join("");
+    const score = state.results ? '<p class="score-line">Score: <strong>' + state.results.filter(item => item.isCorrect).length + ' / ' + state.results.length + '</strong></p>' : "";
+    panel.innerHTML = '<form id="chapter-practice-form"><h2>Chapter questions</h2>' + questionsHTML + score +
+      (state.results ? '<p class="panel-note">This practice set stays in a fixed order; you can review each explanation above.</p>' :
+        '<div class="challenge-actions"><button class="button" type="submit">Check my answers</button></div>') + '</form>';
+  }
+
+  async function bindChapterPractice(root, chapterId) {
+    const panel = root.querySelector("#chapter-practice-panel");
+    if (!panel) return;
+    const state = chapterPracticeState;
+    state.chapterId = String(chapterId);
+    state.questions = [];
+    state.answers = [];
+    state.results = null;
+    state.loading = true;
+    renderChapterPractice(panel);
+
+    const api = window.ADS1ChapterQuizAPI;
+    if (api) {
+      try {
+        const result = await api.list(state.chapterId);
+        if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
+        if (Array.isArray(result?.quizzes) && result.quizzes.length) {
+          state.questions = result.quizzes.map(quiz => ({
+            id: quiz.id, question: quiz.question, options: quiz.options, serverChecked: true
+          }));
+        }
+      } catch { /* Use the bundled fixed set when available. */ }
+    }
+    if (!state.questions.length && (state.chapterId === "1" || state.chapterId === "2")) {
+      const bank = A.EXAM_BANK[state.chapterId === "1" ? 1 : 2] || [];
+      state.questions = bank.slice(0, 8).map(item => ({
+        question: item.q, options: [item.a, ...item.w], correctIndex: 0, explanation: item.why
+      }));
+    }
+    state.loading = false;
+    renderChapterPractice(panel);
+    panel.addEventListener("change", event => {
+      const input = event.target.closest('input[type="radio"][name^="chapter-q"]');
+      if (input && !state.results) state.answers[Number(input.name.slice("chapter-q".length))] = Number(input.value);
+    });
+    panel.addEventListener("submit", async event => {
+      if (event.target.id !== "chapter-practice-form" || state.results) return;
+      event.preventDefault();
+      const submit = panel.querySelector('button[type="submit"]');
+      if (submit) submit.disabled = true;
+      const results = await Promise.all(state.questions.map(async (question, index) => {
+        const selected = state.answers[index];
+        if (selected === undefined) return { isCorrect: false, correctIndex: question.correctIndex ?? -1, correctOption: question.options[question.correctIndex ?? -1] || "", explanation: question.explanation || "" };
+        if (question.serverChecked && api) {
+          const answer = await api.answer(question.id, selected);
+          if (answer?.ok) {
+            const correctIndex = question.options.indexOf(answer.correctOption);
+            return { isCorrect: answer.isCorrect, correctIndex, correctOption: answer.correctOption, explanation: answer.explanation || "" };
+          }
+          return { isCorrect: false, correctIndex: -1, correctOption: "", explanation: answer?.error || "Could not check this answer." };
+        }
+        const isCorrect = selected === question.correctIndex;
+        return { isCorrect, correctIndex: question.correctIndex, correctOption: question.options[question.correctIndex], explanation: question.explanation || "" };
+      }));
+      state.results = results;
+      renderChapterPractice(panel);
+    });
+  }
+
   function overviewPage() {
     return `<section class="container arena-shell fade-in">
       ${crumbs([{ label: "Home", href: "#home" }, { label: "Arena" }])}
       <span class="eyebrow">Practice zone</span><h1>Algo Arena</h1>
       <p class="arena-intro">Three scored tracks with three levels each, plus a debugging lab. Clear a level to earn ${A.LEVEL_XP} XP, climb the ranks and raise your course progress.</p>
       ${rankPanel()}
+      ${chapterPracticeCards()}
       <div class="track-grid">${A.TRACK_ORDER.map(trackCard).join("")}</div>
       <article class="track-card debugger-card"><div class="track-icon" aria-hidden="true">⌕</div><span class="track-tagline">NEW PRACTICE</span><h3>Algorithm Bug Lab</h3><p>Find a faulty line, repair the pseudocode, and understand why the fix works.</p><a class="card-action" href="#arena/debug">Start debugging <span aria-hidden="true">→</span></a></article>
       <div class="content-note">Arena levels count for ${WEIGHT_PERCENT}% of your course progress and the lessons count for the other ${100 - WEIGHT_PERCENT}%. ${esc(savedNote())}</div>
