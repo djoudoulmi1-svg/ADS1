@@ -28,6 +28,8 @@ let adminChapters = [];
 let adminUsers = [];
 let adminGlossaryEntries = [];
 let siteSocialLinks = [];
+let adminQuizzes = [];
+let activeChapterQuizzes = { chapterId: null, items: [], feedback: {} };
 let adminNotice = "";
 let chapterPreviewUrl = null;
 const bundledChapters = [
@@ -350,7 +352,7 @@ function lessonPage(id) {
   </nav>`;
   return `<div class="lesson-toolbar"><a class="button secondary" href="#chapter/${escapeHTML(chapter.id)}"><span aria-hidden="true">←</span> Back to chapter</a><div class="lesson-toolbar-title"><strong>${escapeHTML(chapter.title)}</strong><span>Chapter ${escapeHTML(chapter.number)} · University of Ouargla</span></div><button class="button secondary" id="mark-complete" data-chapter="${escapeHTML(chapter.id)}" type="button" ${isChapterComplete(chapter.id) ? "disabled" : ""}>${isChapterComplete(chapter.id) ? "Completed" : "Mark complete"}</button><button class="button secondary" id="reading-mode-toggle" type="button" aria-pressed="false">Focus reading</button></div>
   ${chapterNav}
-  <iframe class="lesson-frame" data-chapter-id="${escapeHTML(chapter.id)}" ${chapter.remote ? `data-remote-src="${escapeHTML(chapter.file)}"` : `src="${escapeHTML(chapter.file)}"`} title="Chapter ${escapeHTML(chapter.number)}: ${escapeHTML(chapter.title)} lesson" allow="fullscreen"${chapter.remote ? ' sandbox="allow-scripts allow-forms"' : ""}></iframe>`;
+  <iframe class="lesson-frame" data-chapter-id="${escapeHTML(chapter.id)}" ${chapter.remote ? `data-remote-src="${escapeHTML(chapter.file)}"` : `src="${escapeHTML(chapter.file)}"`} title="Chapter ${escapeHTML(chapter.number)}: ${escapeHTML(chapter.title)} lesson" allow="fullscreen"${chapter.remote ? ' sandbox="allow-scripts allow-forms"' : ""}></iframe>  <section class="chapter-quiz-panel" id="chapter-quiz-panel" data-chapter-id="${escapeHTML(chapter.id)}" aria-labelledby="chapter-quiz-heading"><span class="eyebrow">Check your understanding</span><h2 id="chapter-quiz-heading">Chapter quiz</h2><p class="quiz-loading" role="status">Loading questions…</p></section>`;
 }
 
 // Supabase Storage serves uploaded .html files as text/plain, so loading the
@@ -753,6 +755,9 @@ function bindAdminForms() {
   document.querySelector("#admin-glossary-list")?.addEventListener("click", removeAdminGlossaryEntry);
   document.querySelector("#admin-social-form")?.addEventListener("submit", addAdminSocialLink);
   document.querySelector("#admin-social-list")?.addEventListener("click", removeAdminSocialLink);
+  document.querySelector("#admin-quiz-form")?.addEventListener("submit", addAdminQuiz);
+  document.querySelector("#admin-quiz-list")?.addEventListener("click", removeAdminQuiz);
+  document.querySelector("#chapter-quiz-panel")?.addEventListener("submit", submitChapterQuiz);
 }
 
 async function handleAdminChapterAction(event) {
@@ -878,17 +883,103 @@ async function handleAdminUserAction(event) {
 
 async function loadAdminContent() {
   if (!currentIsAdmin || !backendClient) return;
-  const [{ data: glossaryRows, error: glossaryError }, { data: socialRows, error: socialError }] = await Promise.all([
+  const [{ data: glossaryRows, error: glossaryError }, { data: socialRows, error: socialError }, quizResult] = await Promise.all([
     backendClient.from("glossary_entries").select("id, term, definition, chapter_id").order("term"),
-    backendClient.from("site_social_links").select("id, label, url, sort_order").order("sort_order").order("label")
+    backendClient.from("site_social_links").select("id, label, url, sort_order").order("sort_order").order("label"),
+    backendClient.functions.invoke("admin-tools", { body: { action: "list-quizzes" } })
   ]);
-  if (glossaryError || socialError) {
+  if (glossaryError || socialError || quizResult.error || !Array.isArray(quizResult.data?.quizzes)) {
     setAdminNotice("Content tools need the latest database setup.", "error");
     return;
   }
   adminGlossaryEntries = glossaryRows || [];
   siteSocialLinks = socialRows || [];
+  adminQuizzes = quizResult.data.quizzes;
   renderSiteSocialLinks();
+}
+
+function adminQuizRows() {
+  return adminQuizzes.map(quiz => {
+    const chapter = adminChapters.find(item => String(item.id) === String(quiz.chapter_id));
+    const title = chapter ? "Chapter " + chapter.number + " · " + chapter.title : "Chapter " + quiz.chapter_id;
+    return '<div class="admin-content-row"><div><strong>' + escapeHTML(title) + '</strong><span>' + escapeHTML(quiz.question) + '</span></div><button class="button secondary admin-user-action admin-content-delete" type="button" data-quiz-id="' + escapeHTML(quiz.id) + '">Remove</button></div>';
+  }).join("") || '<p class="admin-help">No quiz questions yet.</p>';
+}
+
+async function addAdminQuiz(event) {
+  event.preventDefault();
+  if (!currentIsAdmin) return;
+  const form = new FormData(event.currentTarget);
+  const options = [0, 1, 2, 3].map(index => String(form.get("option" + index) || "").trim());
+  const values = { chapterId: String(form.get("chapter_id") || ""), question: String(form.get("question") || "").trim(), options, correctIndex: Number(form.get("correct_index")), explanation: String(form.get("explanation") || "").trim() };
+  if (!values.chapterId || !values.question || options.some(option => !option) || !Number.isInteger(values.correctIndex)) return;
+  const { data, error } = await backendClient.functions.invoke("admin-tools", { body: { action: "create-quiz", ...values } });
+  if (error || !data?.ok) { setAdminNotice(data?.error || error?.message || "Could not add this quiz question.", "error"); return; }
+  event.currentTarget.reset();
+  await loadAdminContent();
+  render();
+  setAdminNotice("Quiz question added.", "success");
+}
+
+async function removeAdminQuiz(event) {
+  const button = event.target.closest("[data-quiz-id]");
+  if (!button || !currentIsAdmin || !window.confirm("Remove this quiz question?")) return;
+  button.disabled = true;
+  const { data, error } = await backendClient.functions.invoke("admin-tools", { body: { action: "delete-quiz", quizId: button.dataset.quizId } });
+  if (error || !data?.ok) { setAdminNotice(data?.error || error?.message || "Could not remove this quiz question.", "error"); button.disabled = false; return; }
+  await loadAdminContent();
+  render();
+  setAdminNotice("Quiz question removed.", "success");
+}
+
+async function loadChapterQuizzes(chapterId) {
+  activeChapterQuizzes = { chapterId: String(chapterId), items: [], feedback: {} };
+  const panel = document.querySelector("#chapter-quiz-panel");
+  if (!panel) return;
+  if (!currentSession) {
+    panel.innerHTML = '<span class="eyebrow">Check your understanding</span><h2 id="chapter-quiz-heading">Chapter quiz</h2><p>Sign in to answer questions for this chapter.</p><a class="button secondary" href="#account">Sign in</a>';
+    return;
+  }
+  const { data, error } = await backendClient.functions.invoke("chapter-quiz", { body: { action: "list", chapterId: String(chapterId) } });
+  if (!panel.isConnected) return;
+  if (error || !Array.isArray(data?.quizzes)) { panel.innerHTML = '<span class="eyebrow">Check your understanding</span><h2 id="chapter-quiz-heading">Chapter quiz</h2><p role="status">Quiz questions could not be loaded. Please try again later.</p>'; return; }
+  activeChapterQuizzes.items = data.quizzes;
+  panel.innerHTML = '<span class="eyebrow">Check your understanding</span><h2 id="chapter-quiz-heading">Chapter quiz</h2>' + (data.quizzes.length ? data.quizzes.map((quiz, index) => {
+    const feedback = activeChapterQuizzes.feedback[quiz.id];
+    const options = quiz.options.map((option, optionIndex) => '<label><input type="radio" name="answer-' + escapeHTML(quiz.id) + '" value="' + optionIndex + '" required><span>' + escapeHTML(option) + '</span></label>').join("");
+    let result = "";
+    if (feedback) result = '<p class="quiz-feedback ' + (feedback.isCorrect ? "correct" : "incorrect") + '" role="status">' + (feedback.isCorrect ? "Correct!" : "Not quite. Correct answer: " + escapeHTML(feedback.correctOption)) + (feedback.explanation ? " " + escapeHTML(feedback.explanation) : "") + '</p>';
+    return '<form class="chapter-quiz-question" data-quiz-id="' + escapeHTML(quiz.id) + '"><fieldset><legend><span class="quiz-number">Question ' + (index + 1) + '</span>' + escapeHTML(quiz.question) + '</legend><div class="quiz-options">' + options + '</div></fieldset><button class="button secondary" type="submit">Check answer</button>' + result + '</form>';
+  }).join("") : '<p>No quiz questions have been added to this chapter yet.</p>');
+}
+
+async function submitChapterQuiz(event) {
+  const form = event.target.closest("form[data-quiz-id]");
+  if (!form || !currentSession) return;
+  event.preventDefault();
+  const quiz = activeChapterQuizzes.items.find(item => String(item.id) === form.dataset.quizId);
+  const selected = form.querySelector('input[type="radio"]:checked');
+  if (!quiz || !selected) return;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  const { data, error } = await backendClient.functions.invoke("chapter-quiz", { body: { action: "answer", quizId: quiz.id, selectedIndex: Number(selected.value) } });
+  button.disabled = false;
+  if (error || !data?.ok) {
+    const p = document.createElement("p");
+    p.className = "quiz-feedback incorrect";
+    p.setAttribute("role", "status");
+    p.textContent = data?.error || error?.message || "Your answer could not be checked.";
+    form.append(p);
+    return;
+  }
+  activeChapterQuizzes.feedback[quiz.id] = data;
+  const old = form.querySelector(".quiz-feedback");
+  if (old) old.remove();
+  const p = document.createElement("p");
+  p.className = "quiz-feedback " + (data.isCorrect ? "correct" : "incorrect");
+  p.setAttribute("role", "status");
+  p.textContent = (data.isCorrect ? "Correct!" : "Not quite. Correct answer: " + data.correctOption) + (data.explanation ? " " + data.explanation : "");
+  form.append(p);
 }
 
 async function refreshPublicSiteContent() {
@@ -1129,7 +1220,7 @@ function render() {
     document.querySelectorAll("[data-chapter-filter]").forEach(button => button.addEventListener("click", filterChapters));
   }
   if ((page === "home" || page === "chapters") && arenaUI) arenaUI.bindHome();
-  if (page === "lesson") loadRemoteLesson();
+  if (page === "lesson") { loadRemoteLesson(); loadChapterQuizzes(query); }
   if (page === "lesson") app.focus({ preventScroll: true });
 }
 
