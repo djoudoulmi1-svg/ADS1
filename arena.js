@@ -297,9 +297,12 @@
     }
     if (!state.questions.length && (state.chapterId === "1" || state.chapterId === "2")) {
       const bank = A.EXAM_BANK[state.chapterId === "1" ? 1 : 2] || [];
-      state.questions = bank.slice(0, 8).map(item => ({
-        question: item.q, options: [item.a, ...item.w], correctIndex: 0, explanation: item.why
-      }));
+      state.questions = bank.slice(0, 8).map((item, index) => {
+        const options = item.w.slice();
+        const correctIndex = index % (options.length + 1);
+        options.splice(correctIndex, 0, item.a);
+        return { question: item.q, options, correctIndex, explanation: item.why };
+      });
     }
     state.loading = false;
     renderChapterPractice(panel);
