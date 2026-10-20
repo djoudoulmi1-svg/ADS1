@@ -177,7 +177,7 @@ Deno.serve(async request => {
     const explanation = String(body.explanation || "").trim();
     if (!chapterId || question.length < 5 || question.length > 500 || options.length !== 4 ||
         options.some(option => !option || option.length > 240) ||
-        !Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex > 3 || explanation.length > 1000) {
+        typeof correctIndex !== "number" || !Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex > 3 || explanation.length > 1000) {
       return jsonResponse({ error: "Enter a question, four answer options, and one correct option" }, 400);
     }
     const bundled = chapterId === "1" || chapterId === "2";
