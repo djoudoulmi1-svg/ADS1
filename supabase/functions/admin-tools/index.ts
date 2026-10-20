@@ -147,12 +147,65 @@ Deno.serve(async request => {
       console.error("Could not remove glossary entries for deleted chapter:", glossaryError.message);
       return jsonResponse({ error: "The chapter file was removed, but related glossary entries could not be cleaned up. Contact the site owner." }, 500);
     }
+    const { error: quizError } = await adminClient.from("chapter_quizzes").delete().eq("chapter_id", chapterId);
+    if (quizError) return jsonResponse({ error: "The lesson file was removed, but its quiz questions could not be removed. Contact the site owner." }, 500);
     const { error: catalogError } = await adminClient.from("chapter_catalog").delete().eq("id", chapterId);
     if (catalogError) {
       console.error("Could not remove chapter catalog entry:", catalogError.message);
       return jsonResponse({ error: "The lesson file was removed, but its catalog entry could not be deleted. Contact the site owner." }, 500);
     }
     return jsonResponse({ ok: true, chapterId });
+  }
+
+  if (body.action === "list-quizzes") {
+    const { data: quizzes, error } = await adminClient
+      .from("chapter_quizzes")
+      .select("id, chapter_id, question, options, correct_index, explanation, created_at")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Could not load chapter quizzes:", error.message);
+      return jsonResponse({ error: "Could not load quiz questions" }, 500);
+    }
+    return jsonResponse({ quizzes: quizzes || [] });
+  }
+
+  if (body.action === "create-quiz") {
+    const chapterId = String(body.chapterId || "");
+    const question = String(body.question || "").trim();
+    const options = Array.isArray(body.options) ? body.options.map((option: unknown) => String(option || "").trim()) : [];
+    const correctIndex = body.correctIndex;
+    const explanation = String(body.explanation || "").trim();
+    if (!chapterId || question.length < 5 || question.length > 500 || options.length !== 4 ||
+        options.some(option => !option || option.length > 240) ||
+        !Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex > 3 || explanation.length > 1000) {
+      return jsonResponse({ error: "Enter a question, four answer options, and one correct option" }, 400);
+    }
+    const bundled = chapterId === "1" || chapterId === "2";
+    const { data: chapter, error: chapterError } = bundled
+      ? { data: { id: chapterId }, error: null }
+      : await adminClient.from("chapter_catalog").select("id").eq("id", chapterId).maybeSingle();
+    if (chapterError) return jsonResponse({ error: "Could not verify the chapter" }, 500);
+    if (!chapter) return jsonResponse({ error: "Chapter not found" }, 404);
+    const { data: quiz, error } = await adminClient.from("chapter_quizzes").insert({
+      chapter_id: chapterId, question, options, correct_index: correctIndex, explanation, created_by: caller.id
+    }).select("id").single();
+    if (error) {
+      console.error("Could not create quiz question:", error.message);
+      return jsonResponse({ error: "Could not save this quiz question" }, 500);
+    }
+    return jsonResponse({ ok: true, quizId: quiz.id });
+  }
+
+  if (body.action === "delete-quiz") {
+    const quizId = String(body.quizId || "");
+    if (!/^[0-9a-f-]{36}$/i.test(quizId)) return jsonResponse({ error: "A valid quiz question is required" }, 400);
+    const { error, count } = await adminClient.from("chapter_quizzes").delete({ count: "exact" }).eq("id", quizId);
+    if (error) {
+      console.error("Could not delete quiz question:", error.message);
+      return jsonResponse({ error: "Could not remove this quiz question" }, 500);
+    }
+    if (count === 0) return jsonResponse({ error: "Quiz question not found" }, 404);
+    return jsonResponse({ ok: true });
   }
 
   if (body.action === "delete-student") {
