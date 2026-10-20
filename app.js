@@ -26,6 +26,8 @@ let currentIsAdmin = false;
 let currentIsOwner = false;
 let adminChapters = [];
 let adminUsers = [];
+let adminGlossaryEntries = [];
+let siteSocialLinks = [];
 let adminNotice = "";
 let chapterPreviewUrl = null;
 const bundledChapters = [
@@ -633,21 +635,27 @@ function adminPanel() {
     </div>`).join("");
   const rows = adminUsers.map(user => {
     const protectedUser = user.owner || user.administrator || user.userId === currentSession?.user?.id;
-    const nextActive = user.disabled;
     const actionLabel = user.disabled ? "Reactivate" : "Deactivate";
     const stateLabel = user.owner ? "Site owner" : user.administrator ? (user.disabled ? "Administrator · Disabled" : "Administrator") : user.disabled ? "Disabled" : "Active";
     const adminAction = user.administrator ? "Revoke admin" : "Make admin";
     return `<div class="admin-user-row">
       <div class="admin-user-identity"><strong>${escapeHTML(user.displayName || "Student")}</strong><span>${escapeHTML(user.email)}</span></div>
       <span class="admin-user-status ${user.disabled ? "disabled" : ""}">${stateLabel}</span>
-      ${currentIsOwner && !user.owner ? `<button class="button secondary admin-user-action" type="button" data-admin-user-id="${escapeHTML(user.userId)}" data-is-admin="${user.administrator}" ${!user.confirmed || (user.disabled && !user.administrator) ? "disabled title=\"Account must be confirmed and active to become an administrator\"" : ""}>${adminAction}</button>` : ""}
-      <button class="button secondary admin-user-action" type="button" data-user-id="${escapeHTML(user.userId)}" data-active="${nextActive}" ${protectedUser ? "disabled" : ""}>${actionLabel}</button>
+      ${currentIsOwner && !user.owner ? `<button class="button secondary admin-user-action" type="button" data-admin-user-id="${escapeHTML(user.userId)}" data-is-admin="${user.administrator}" ${!user.confirmed || (user.disabled && !user.administrator) ? "disabled title=\\"Account must be confirmed and active to become an administrator\\"" : ""}>${adminAction}</button>` : ""}
+      <button class="button secondary admin-user-action" type="button" data-user-id="${escapeHTML(user.userId)}" data-active="${user.disabled}" ${protectedUser ? "disabled" : ""}>${actionLabel}</button>
+      ${protectedUser ? "" : `<button class="button secondary admin-user-action admin-delete-student" type="button" data-delete-user-id="${escapeHTML(user.userId)}" data-delete-user-email="${escapeHTML(user.email)}">Delete student</button>`}
     </div>`;
   }).join("");
+  const glossaryChapterOptions = adminChapters.filter(chapter => chapter.available).map(chapter =>
+    `<option value="${escapeHTML(chapter.id)}">Chapter ${escapeHTML(chapter.number)} · ${escapeHTML(chapter.title)}</option>`).join("");
+  const glossaryRows = adminGlossaryEntries.map(entry => `
+    <div class="admin-content-row"><div><strong>${escapeHTML(entry.term)}</strong><span>${escapeHTML(entry.definition)}</span></div><button class="button secondary admin-user-action admin-content-delete" type="button" data-glossary-id="${escapeHTML(entry.id)}">Remove</button></div>`).join("");
+  const socialRows = siteSocialLinks.map(link => `
+    <div class="admin-content-row"><div><strong>${escapeHTML(link.label)}</strong><span>${escapeHTML(link.url)}</span></div><button class="button secondary admin-user-action admin-content-delete" type="button" data-social-id="${escapeHTML(link.id)}">Remove</button></div>`).join("");
 
   return `<section class="admin-panel" aria-labelledby="admin-heading">
     <span class="eyebrow">Site administration</span><h2 id="admin-heading">Administrator tools</h2>
-    <p>${currentIsOwner ? "You are the only site owner. You can appoint or remove administrators; appointed administrators can upload chapters and manage student access." : "Only the site owner can appoint administrators. You can upload chapters and manage student access."}</p>
+    <p>${currentIsOwner ? "You are the only site owner. You can appoint or remove administrators; appointed administrators can upload and manage chapters, students, glossary terms, and social links." : "Only the site owner can appoint administrators. You can upload and manage chapters, students, glossary terms, and social links."}</p>
     <form id="chapter-upload-form" class="admin-upload-form">
       <h3>Upload a chapter</h3>
       <div class="admin-upload-grid">
@@ -661,14 +669,38 @@ function adminPanel() {
       <iframe class="chapter-upload-preview" id="chapter-upload-preview" title="Rendered chapter preview" sandbox="allow-scripts allow-forms" hidden></iframe>
       <button class="button" type="submit">Upload chapter</button>
     </form>
-    <div class="admin-chapters-heading"><h3>Chapter management</h3></div><p class="admin-help">Hide a chapter to keep it saved for later, or permanently delete an uploaded chapter. The original chapters can be hidden or shown but are not deleted from the site files.</p>
+
+    <section class="admin-content-manager" aria-labelledby="admin-glossary-heading">
+      <h3 id="admin-glossary-heading">Add a glossary term</h3>
+      <form id="admin-glossary-form" class="admin-content-form">
+        <label>Term<input name="term" maxlength="80" required></label>
+        <label>Definition<textarea name="definition" maxlength="800" rows="3" required></textarea></label>
+        <label>Related chapter<select name="chapter_id" required>${glossaryChapterOptions || "<option value=\\"\\" disabled>No visible chapters available</option>"}</select></label>
+        <button class="button" type="submit" ${glossaryChapterOptions ? "" : "disabled"}>Add term</button>
+      </form>
+      <div class="admin-content-list" id="admin-glossary-list">${glossaryRows || `<p class="admin-help">No additional glossary terms yet.</p>`}</div>
+    </section>
+
+    <section class="admin-content-manager" aria-labelledby="admin-social-heading">
+      <h3 id="admin-social-heading">Site social links</h3>
+      <p class="admin-help">Add a Telegram channel or another public HTTPS link. These links appear in the site footer.</p>
+      <form id="admin-social-form" class="admin-content-form admin-social-form">
+        <label>Link name<input name="label" maxlength="40" placeholder="Telegram channel" required></label>
+        <label>HTTPS link<input name="url" type="url" placeholder="https://t.me/your_channel" pattern="https://.*" maxlength="500" required></label>
+        <button class="button" type="submit">Add social link</button>
+      </form>
+      <div class="admin-content-list" id="admin-social-list">${socialRows || `<p class="admin-help">No social links added yet.</p>`}</div>
+    </section>
+
+    <div class="admin-chapters-heading"><h3>Chapter management</h3></div>
+    <p class="admin-help">Hide a chapter to keep it saved for later, or permanently delete an uploaded chapter. Chapters 1 and 2 can be hidden or shown but are part of the website files.</p>
     <div class="admin-chapters" id="admin-chapters">${chapterRows || `<p class="admin-help">No chapters found.</p>`}</div>
     <p class="account-notice" id="admin-notice" aria-live="polite">${escapeHTML(adminNotice)}</p>
     <div class="admin-users-heading"><h3>Student accounts</h3><button class="button secondary" id="refresh-admin-users" type="button">Refresh list</button></div>
+    <p class="admin-help">Deactivation is reversible. Deleting a student permanently removes their account and private progress.</p>
     <div class="admin-users" id="admin-users">${rows || `<p class="admin-help">No student accounts found.</p>`}</div>
   </section>`;
 }
-
 function setAdminNotice(message, kind = "") {
   adminNotice = message;
   const notice = document.querySelector("#admin-notice");
@@ -717,6 +749,10 @@ function bindAdminForms() {
   document.querySelector("#refresh-admin-users")?.addEventListener("click", refreshAdminUsers);
   document.querySelector("#admin-users")?.addEventListener("click", handleAdminUserAction);
   document.querySelector("#admin-chapters")?.addEventListener("click", handleAdminChapterAction);
+  document.querySelector("#admin-glossary-form")?.addEventListener("submit", addAdminGlossaryEntry);
+  document.querySelector("#admin-glossary-list")?.addEventListener("click", removeAdminGlossaryEntry);
+  document.querySelector("#admin-social-form")?.addEventListener("submit", addAdminSocialLink);
+  document.querySelector("#admin-social-list")?.addEventListener("click", removeAdminSocialLink);
 }
 
 async function handleAdminChapterAction(event) {
@@ -798,6 +834,25 @@ async function changeStudentAccess(event) {
 }
 
 async function handleAdminUserAction(event) {
+  const deleteButton = event.target.closest("button[data-delete-user-id]");
+  if (deleteButton) {
+    const userId = deleteButton.dataset.deleteUserId;
+    const email = deleteButton.dataset.deleteUserEmail || "this student";
+    if (!currentIsAdmin || !window.confirm(`Permanently delete the student account ${email}? The account, profile, saved notes, and progress cannot be restored.`)) return;
+    deleteButton.disabled = true;
+    setAdminNotice("Deleting student account permanently…");
+    const { data, error } = await backendClient.functions.invoke("admin-tools", {
+      body: { action: "delete-student", userId }
+    });
+    if (error || !data?.ok) {
+      setAdminNotice(data?.error || error?.message || "Could not delete this student account.", "error");
+      deleteButton.disabled = false;
+      return;
+    }
+    await refreshAdminUsers();
+    setAdminNotice("Student account permanently deleted.", "success");
+    return;
+  }
   const adminButton = event.target.closest("button[data-admin-user-id]");
   if (adminButton) {
     if (!currentIsOwner) return;
@@ -819,6 +874,134 @@ async function handleAdminUserAction(event) {
     return;
   }
   await changeStudentAccess(event);
+}
+
+async function loadAdminContent() {
+  if (!currentIsAdmin || !backendClient) return;
+  const [{ data: glossaryRows, error: glossaryError }, { data: socialRows, error: socialError }] = await Promise.all([
+    backendClient.from("glossary_entries").select("id, term, definition, chapter_id").order("term"),
+    backendClient.from("site_social_links").select("id, label, url, sort_order").order("sort_order").order("label")
+  ]);
+  if (glossaryError || socialError) {
+    setAdminNotice("Content tools need the latest database setup.", "error");
+    return;
+  }
+  adminGlossaryEntries = glossaryRows || [];
+  siteSocialLinks = socialRows || [];
+  renderSiteSocialLinks();
+}
+
+async function refreshPublicSiteContent() {
+  if (!backendClient) return;
+  const [{ data: glossaryRows, error: glossaryError }, { data: socialRows, error: socialError }] = await Promise.all([
+    backendClient.from("glossary_entries").select("id, term, definition, chapter_id").order("term"),
+    backendClient.from("site_social_links").select("id, label, url").order("sort_order").order("label")
+  ]);
+  if (!glossaryError && Array.isArray(glossaryRows)) {
+    const visibleChapterIds = new Set(chapters.map(chapter => String(chapter.id)));
+    window.ADS1GlossaryUI?.setCustomEntries(glossaryRows.filter(entry => visibleChapterIds.has(String(entry.chapter_id))));
+  }
+  if (!socialError && Array.isArray(socialRows)) {
+    siteSocialLinks = socialRows;
+    renderSiteSocialLinks();
+  }
+}
+
+function renderSiteSocialLinks() {
+  const host = document.querySelector("#site-social-links");
+  if (!host) return;
+  host.innerHTML = siteSocialLinks.map(link => {
+    let url;
+    try {
+      url = new URL(link.url);
+      if (url.protocol !== "https:") return "";
+    } catch { return ""; }
+    return `<a href="${escapeHTML(url.href)}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)}</a>`;
+  }).join("");
+  host.hidden = !host.childElementCount;
+}
+
+async function addAdminGlossaryEntry(event) {
+  event.preventDefault();
+  if (!currentIsAdmin) return;
+  const form = new FormData(event.currentTarget);
+  const term = String(form.get("term") || "").trim();
+  const definition = String(form.get("definition") || "").trim();
+  const chapterId = String(form.get("chapter_id") || "");
+  if (term.length < 2 || definition.length < 5 || !adminChapters.some(chapter => chapter.available && String(chapter.id) === chapterId)) {
+    setAdminNotice("Enter a valid term, definition, and visible related chapter.", "error");
+    return;
+  }
+  if (window.ADS1GlossaryUI?.hasTerm(term)) {
+    setAdminNotice("That term already exists in the glossary.", "error");
+    return;
+  }
+  const { error } = await backendClient.from("glossary_entries").insert({
+    term, definition, chapter_id: chapterId, created_by: currentSession.user.id
+  });
+  if (error) {
+    setAdminNotice(error.code === "23505" ? "That term already exists in the glossary." : error.message, "error");
+    return;
+  }
+  event.currentTarget.reset();
+  await loadAdminContent();
+  await refreshPublicSiteContent();
+  render();
+  setAdminNotice("Glossary term added.", "success");
+}
+
+async function removeAdminGlossaryEntry(event) {
+  const button = event.target.closest("button[data-glossary-id]");
+  if (!button || !currentIsAdmin || !window.confirm("Remove this additional glossary term from the site?")) return;
+  const { error } = await backendClient.from("glossary_entries").delete().eq("id", button.dataset.glossaryId);
+  if (error) {
+    setAdminNotice(error.message, "error");
+    return;
+  }
+  await loadAdminContent();
+  await refreshPublicSiteContent();
+  render();
+  setAdminNotice("Glossary term removed.", "success");
+}
+
+async function addAdminSocialLink(event) {
+  event.preventDefault();
+  if (!currentIsAdmin) return;
+  const form = new FormData(event.currentTarget);
+  const label = String(form.get("label") || "").trim();
+  const urlText = String(form.get("url") || "").trim();
+  let url;
+  try { url = new URL(urlText); } catch {}
+  if (label.length < 2 || !url || url.protocol !== "https:") {
+    setAdminNotice("Enter a link name and a valid HTTPS address.", "error");
+    return;
+  }
+  const { error } = await backendClient.from("site_social_links").insert({
+    label, url: url.href, sort_order: siteSocialLinks.length, created_by: currentSession.user.id
+  });
+  if (error) {
+    setAdminNotice(error.message, "error");
+    return;
+  }
+  event.currentTarget.reset();
+  await loadAdminContent();
+  await refreshPublicSiteContent();
+  render();
+  setAdminNotice("Social link added to the site footer.", "success");
+}
+
+async function removeAdminSocialLink(event) {
+  const button = event.target.closest("button[data-social-id]");
+  if (!button || !currentIsAdmin || !window.confirm("Remove this social link from the site?")) return;
+  const { error } = await backendClient.from("site_social_links").delete().eq("id", button.dataset.socialId);
+  if (error) {
+    setAdminNotice(error.message, "error");
+    return;
+  }
+  await loadAdminContent();
+  await refreshPublicSiteContent();
+  render();
+  setAdminNotice("Social link removed.", "success");
 }
 
 async function uploadChapter(event) {
@@ -897,6 +1080,7 @@ async function loadAdminState() {
   }
   adminUsers = result.users;
   adminNotice = "";
+  await loadAdminContent();
 }
 
 function aboutPage() {
@@ -1341,6 +1525,7 @@ menuToggle.addEventListener("click", () => {
 async function startApplication() {
   if (window.ADS1ArenaUI) await window.ADS1ArenaUI.load();
   await loadChapterCatalog();
+  await refreshPublicSiteContent();
   await initializeAccounts();
   render();
 }
