@@ -150,6 +150,36 @@ Deno.serve(async request => {
     return jsonResponse({ ok: true, chapterId });
   }
 
+  if (body.action === "delete-student") {
+    const targetUserId = String(body.userId || "");
+    if (!/^[0-9a-f-]{36}$/i.test(targetUserId)) {
+      return jsonResponse({ error: "A valid student account is required" }, 400);
+    }
+    if (targetUserId === caller.id) {
+      return jsonResponse({ error: "You cannot delete your own administrator account" }, 400);
+    }
+
+    const [{ data: targetOwner, error: ownerCheckError }, { data: targetAdmin, error: adminCheckError }] = await Promise.all([
+      adminClient.from("site_owners").select("user_id").eq("user_id", targetUserId).maybeSingle(),
+      adminClient.from("site_admins").select("user_id").eq("user_id", targetUserId).maybeSingle()
+    ]);
+    if (ownerCheckError || adminCheckError) {
+      return jsonResponse({ error: "Could not verify the account role" }, 500);
+    }
+    if (targetOwner || targetAdmin) {
+      return jsonResponse({ error: "Only student accounts can be permanently deleted here" }, 403);
+    }
+    const { data: target, error: targetError } = await adminClient.auth.admin.getUserById(targetUserId);
+    if (targetError || !target.user) return jsonResponse({ error: "Student account not found" }, 404);
+
+    const { error: deleteError } = await adminClient.auth.admin.deleteUser(targetUserId);
+    if (deleteError) {
+      console.error("Could not delete student account:", deleteError.message);
+      return jsonResponse({ error: "Could not delete this account. Check whether it owns any Supabase Storage files." }, 500);
+    }
+    return jsonResponse({ ok: true, userId: targetUserId });
+  }
+
   if (body.action === "list-users") {
     const { data: userResult, error: listError } = await adminClient.auth.admin.listUsers({
       page: 1,
