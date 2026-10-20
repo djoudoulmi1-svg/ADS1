@@ -923,13 +923,14 @@ function adminQuizRows() {
 async function addAdminQuiz(event) {
   event.preventDefault();
   if (!currentIsAdmin) return;
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
   const options = [0, 1, 2, 3].map(index => String(form.get("option" + index) || "").trim());
   const values = { chapterId: String(form.get("chapter_id") || ""), question: String(form.get("question") || "").trim(), options, correctIndex: Number(form.get("correct_index")), explanation: String(form.get("explanation") || "").trim() };
   if (!values.chapterId || !values.question || options.some(option => !option) || !Number.isInteger(values.correctIndex)) return;
   const { data, error } = await backendClient.functions.invoke("admin-tools", { body: { action: "create-quiz", ...values } });
   if (error || !data?.ok) { setAdminNotice(data?.error || error?.message || "Could not add this quiz question.", "error"); return; }
-  event.currentTarget.reset();
+  formElement.reset();
   await loadAdminContent();
   render();
   setAdminNotice("Quiz question added.", "success");
