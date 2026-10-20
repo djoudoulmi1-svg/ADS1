@@ -217,7 +217,7 @@
     return "Your results are saved to your account.";
   }
 
-  const chapterPracticeState = { chapterId: "", questions: [], answers: [], results: null, loading: false };
+  const chapterPracticeState = { chapterId: "", questions: [], answers: [], results: null, loading: false, error: "" };
 
   function chapterList() {
     const chapters = window.ADS1ChapterCatalog;
@@ -249,7 +249,9 @@
     const state = chapterPracticeState;
     if (state.loading) { panel.innerHTML = '<p role="status">Loading chapter exercises…</p>'; return; }
     if (!state.questions.length) {
-      panel.innerHTML = '<h2>Exercises are being prepared</h2><p>No exercises have been added to this chapter yet. The site administrator can add its questions from Account → Administrator tools.</p>';
+      panel.innerHTML = state.error
+        ? '<h2>Could not load chapter exercises</h2><p>' + esc(state.error) + '</p><a class="button secondary" href="#account">Sign in to load these exercises</a>'
+        : '<h2>Exercises are being prepared</h2><p>No exercises have been added to this chapter yet. The site administrator can add its questions from Account → Administrator tools.</p>';
       return;
     }
     const questionsHTML = state.questions.map((question, index) => {
@@ -280,6 +282,7 @@
     state.questions = [];
     state.answers = [];
     state.results = null;
+    state.error = "";
     state.loading = true;
     renderChapterPractice(panel);
 
@@ -288,12 +291,13 @@
       try {
         const result = await api.list(state.chapterId);
         if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
+        if (result?.error) state.error = result.error;
         if (Array.isArray(result?.quizzes) && result.quizzes.length) {
           state.questions = result.quizzes.map(quiz => ({
             id: quiz.id, question: quiz.question, options: quiz.options, serverChecked: true
           }));
         }
-      } catch { /* Use the bundled fixed set when available. */ }
+      } catch { state.error = "Please sign in and try again."; }
     }
     if (!state.questions.length && (state.chapterId === "1" || state.chapterId === "2")) {
       const bank = A.EXAM_BANK[state.chapterId === "1" ? 1 : 2] || [];
@@ -324,7 +328,7 @@
             const correctIndex = question.options.indexOf(answer.correctOption);
             return { isCorrect: answer.isCorrect, correctIndex, correctOption: answer.correctOption, explanation: answer.explanation || "" };
           }
-          return { isCorrect: false, correctIndex: -1, correctOption: "", explanation: answer?.error || "Could not check this answer." };
+          return { isCorrect: false, error: answer?.error || "Could not check this answer.", correctIndex: -1, correctOption: "", explanation: "" };
         }
         const isCorrect = selected === question.correctIndex;
         return { isCorrect, correctIndex: question.correctIndex, correctOption: question.options[question.correctIndex], explanation: question.explanation || "" };
