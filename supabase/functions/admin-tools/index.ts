@@ -177,8 +177,19 @@ Deno.serve(async request => {
     const { data: target, error: targetError } = await adminClient.auth.admin.getUserById(targetUserId);
     if (targetError || !target.user) return jsonResponse({ error: "Student account not found" }, 404);
 
+    const { error: tombstoneError } = await adminClient.from("deleted_user_ids").upsert({
+      user_id: targetUserId,
+      deleted_by: caller.id,
+      deleted_at: new Date().toISOString()
+    }, { onConflict: "user_id" });
+    if (tombstoneError) {
+      console.error("Could not block the student's existing sessions:", tombstoneError.message);
+      return jsonResponse({ error: "Could not safely prepare this account for deletion" }, 500);
+    }
+
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(targetUserId);
     if (deleteError) {
+      await adminClient.from("deleted_user_ids").delete().eq("user_id", targetUserId);
       console.error("Could not delete student account:", deleteError.message);
       return jsonResponse({ error: "Could not delete this account. Check whether it owns any Supabase Storage files." }, 500);
     }
