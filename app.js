@@ -641,7 +641,7 @@ function adminPanel() {
     return `<div class="admin-user-row">
       <div class="admin-user-identity"><strong>${escapeHTML(user.displayName || "Student")}</strong><span>${escapeHTML(user.email)}</span></div>
       <span class="admin-user-status ${user.disabled ? "disabled" : ""}">${stateLabel}</span>
-      ${currentIsOwner && !user.owner ? `<button class="button secondary admin-user-action" type="button" data-admin-user-id="${escapeHTML(user.userId)}" data-is-admin="${user.administrator}" ${!user.confirmed || (user.disabled && !user.administrator) ? "disabled title=\\"Account must be confirmed and active to become an administrator\\"" : ""}>${adminAction}</button>` : ""}
+      ${currentIsOwner && !user.owner ? `<button class="button secondary admin-user-action" type="button" data-admin-user-id="${escapeHTML(user.userId)}" data-is-admin="${user.administrator}" ${!user.confirmed || (user.disabled && !user.administrator) ? "disabled title=\"Account must be confirmed and active to become an administrator\"" : ""}>${adminAction}</button>` : ""}
       <button class="button secondary admin-user-action" type="button" data-user-id="${escapeHTML(user.userId)}" data-active="${user.disabled}" ${protectedUser ? "disabled" : ""}>${actionLabel}</button>
       ${protectedUser ? "" : `<button class="button secondary admin-user-action admin-delete-student" type="button" data-delete-user-id="${escapeHTML(user.userId)}" data-delete-user-email="${escapeHTML(user.email)}">Delete student</button>`}
     </div>`;
@@ -675,7 +675,7 @@ function adminPanel() {
       <form id="admin-glossary-form" class="admin-content-form">
         <label>Term<input name="term" maxlength="80" required></label>
         <label>Definition<textarea name="definition" maxlength="800" rows="3" required></textarea></label>
-        <label>Related chapter<select name="chapter_id" required>${glossaryChapterOptions || "<option value=\\"\\" disabled>No visible chapters available</option>"}</select></label>
+        <label>Related chapter<select name="chapter_id" required>${glossaryChapterOptions || "<option value=\"\" disabled>No visible chapters available</option>"}</select></label>
         <button class="button" type="submit" ${glossaryChapterOptions ? "" : "disabled"}>Add term</button>
       </form>
       <div class="admin-content-list" id="admin-glossary-list">${glossaryRows || `<p class="admin-help">No additional glossary terms yet.</p>`}</div>
