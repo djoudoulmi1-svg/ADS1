@@ -9,7 +9,9 @@ const supabaseReady = Boolean(
   !supabaseConfig.publishableKey.startsWith("YOUR_")
 );
 const backendClient = supabaseReady
-  ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.publishableKey)
+  ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.publishableKey, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    })
   : null;
 let currentSession = null;
 let currentProfile = null;
@@ -1273,17 +1275,17 @@ function render() {
   if (page === "lesson") {
     const lessonChapter = chapters.find(item => item.available && String(item.id) === query);
     if (lessonChapter) { try { localStorage.setItem("ads1.last-opened-chapter", String(lessonChapter.id)); } catch {} }
-    document.querySelector("#reading-mode-toggle").addEventListener("click", event => {
+    document.querySelector("#reading-mode-toggle")?.addEventListener("click", event => {
       const enabled = document.body.classList.toggle("reading-mode");
       event.currentTarget.setAttribute("aria-pressed", String(enabled));
       event.currentTarget.textContent = enabled ? "Exit focus mode" : "Focus reading";
     });
-    document.querySelector("#mark-complete").addEventListener("click", markComplete);
+    document.querySelector("#mark-complete")?.addEventListener("click", markComplete);
   }
   if (page === "account" && backendClient) bindAccountForms();
   if (page === "account" && currentIsAdmin) bindAdminForms();
   if (page === "home" || page === "chapters") {
-    document.querySelector("#chapter-search").addEventListener("input", filterChapters);
+    document.querySelector("#chapter-search")?.addEventListener("input", filterChapters);
     document.querySelectorAll("[data-chapter-filter]").forEach(button => button.addEventListener("click", filterChapters));
   }
   if ((page === "home" || page === "chapters") && arenaUI) arenaUI.bindHome();
