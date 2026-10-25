@@ -1599,7 +1599,6 @@ async function initializeAccounts() {
         if (window.ADS1ArenaUI) await window.ADS1ArenaUI.load();
         await loadChapterCatalog();
       }
-      updateAssistantStatus();
       render();
     }, 0);
   });
