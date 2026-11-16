@@ -278,6 +278,7 @@ Deno.serve(async request => {
       userId: user.id,
       email: user.email || "",
       displayName: names.get(user.id) || user.user_metadata?.display_name || "",
+      requestedTeacher: user.user_metadata?.requested_account_type === "teacher",
       disabled: disabledIds.has(user.id),
       administrator: adminIds.has(user.id) && !ownerIds.has(user.id),
       owner: ownerIds.has(user.id),
