@@ -1,26 +1,33 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const allowedOrigin = "https://djoudoulmi1-svg.github.io";
-const corsHeaders = {
-  "Access-Control-Allow-Origin": allowedOrigin,
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Vary": "Origin"
-};
+const allowedOrigins = new Set([
+  "https://djoudoulmi1-svg.github.io",
+  "https://ads1-learning.web.app"
+]);
 
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
+function corsHeadersFor(origin: string | null) {
+  return {
+    "Access-Control-Allow-Origin": origin && allowedOrigins.has(origin)
+      ? origin
+      : "https://djoudoulmi1-svg.github.io",
+    "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin"
+  };
 }
 
 Deno.serve(async request => {
-  if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
-  if (request.headers.get("Origin") && request.headers.get("Origin") !== allowedOrigin) {
+  const origin = request.headers.get("Origin");
+  const corsHeaders = corsHeadersFor(origin);
+  const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
+  if (origin && !allowedOrigins.has(origin)) {
     return jsonResponse({ error: "Origin not allowed" }, 403);
   }
+  if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
   const authorization = request.headers.get("Authorization") || "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
