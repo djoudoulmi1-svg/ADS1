@@ -609,10 +609,14 @@ function accountPage() {
 
   return `<section class="container account-shell fade-in">
     <span class="eyebrow">Student account</span><h1>Join the ADS1 learning hub</h1>
-    <p class="account-intro">Use one account per email address. Your detailed progress stays private; signed-in students can see your chosen display name and overall completion percentage.</p>
+    <p class="account-intro">Use one account per email address. Your detailed progress stays private; signed-in students can see your chosen display name and overall completion percentage. Teacher accounts require the site owner’s approval before administrator tools become available.</p>
     <div class="auth-grid">
       <form id="signup-form" class="auth-form"><h2>Create account</h2>
         <label for="signup-name">Display name</label><input id="signup-name" name="displayName" autocomplete="nickname" minlength="2" maxlength="40" required>
+        <fieldset class="account-type-fieldset"><legend>Account type</legend>
+          <label><input type="radio" name="accountType" value="student" checked> Student — regular account</label>
+          <label><input type="radio" name="accountType" value="teacher"> Teacher — requires owner approval</label>
+        </fieldset>
         <label for="signup-email">Email</label><input id="signup-email" name="email" type="email" autocomplete="email" required>
         <label for="signup-password">Password</label><input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
         <button class="button" type="submit">Sign up</button>
@@ -622,6 +626,7 @@ function accountPage() {
         <label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required>
         <button class="button secondary" type="submit">Sign in</button>
         <button class="text-button" id="forgot-password" type="button">Forgot your password?</button>
+        <p class="admin-help">Use the same sign-in form. Teacher tools appear after the site owner approves the account.</p>
       </form>
     </div>
     <p class="account-notice" id="account-notice" aria-live="polite">${escapeHTML(accountNotice)}</p>
@@ -641,12 +646,13 @@ function adminPanel() {
   const rows = adminUsers.map(user => {
     const protectedUser = user.owner || user.administrator || user.userId === currentSession?.user?.id;
     const actionLabel = user.disabled ? "Reactivate" : "Deactivate";
-    const stateLabel = user.owner ? "Site owner" : user.administrator ? (user.disabled ? "Administrator · Disabled" : "Administrator") : user.disabled ? "Disabled" : "Active";
-    const adminAction = user.administrator ? "Revoke admin" : "Make admin";
+    const pendingTeacher = user.requestedTeacher && !user.administrator;
+    const stateLabel = user.owner ? "Site owner" : user.administrator ? (user.disabled ? "Administrator · Disabled" : "Administrator") : pendingTeacher ? (user.disabled ? "Teacher request · Disabled" : "Teacher request · Pending approval") : user.disabled ? "Disabled" : "Active";
+    const adminAction = user.administrator ? "Revoke admin" : pendingTeacher ? "Approve teacher" : "Make admin";
     return `<div class="admin-user-row">
-      <div class="admin-user-identity"><strong>${escapeHTML(user.displayName || "Student")}</strong><span>${escapeHTML(user.email)}</span></div>
+      <div class="admin-user-identity"><strong>${escapeHTML(user.displayName || (user.requestedTeacher ? "Teacher applicant" : "Student"))}</strong><span>${escapeHTML(user.email)}</span></div>
       <span class="admin-user-status ${user.disabled ? "disabled" : ""}">${stateLabel}</span>
-      ${currentIsOwner && !user.owner ? `<button class="button secondary admin-user-action" type="button" data-admin-user-id="${escapeHTML(user.userId)}" data-is-admin="${user.administrator}" ${!user.confirmed || (user.disabled && !user.administrator) ? "disabled title=\"Account must be confirmed and active to become an administrator\"" : ""}>${adminAction}</button>` : ""}
+      ${currentIsOwner && !user.owner ? `<button class="button secondary admin-user-action" type="button" data-admin-user-id="${escapeHTML(user.userId)}" data-is-admin="${user.administrator}" data-pending-teacher="${pendingTeacher}" ${!user.confirmed || (user.disabled && !user.administrator) ? "disabled title=\"Account must be confirmed and active to become an administrator\"" : ""}>${adminAction}</button>` : ""}
       <button class="button secondary admin-user-action" type="button" data-user-id="${escapeHTML(user.userId)}" data-active="${user.disabled}" ${protectedUser ? "disabled" : ""}>${actionLabel}</button>
       ${protectedUser ? "" : `<button class="button secondary admin-user-action admin-delete-student" type="button" data-delete-user-id="${escapeHTML(user.userId)}" data-delete-user-email="${escapeHTML(user.email)}">Delete student</button>`}
     </div>`;
@@ -879,7 +885,10 @@ async function handleAdminUserAction(event) {
   if (adminButton) {
     if (!currentIsOwner) return;
     const administrator = adminButton.dataset.isAdmin !== "true";
-    const action = administrator ? "grant administrator access to" : "remove administrator access from";
+    const pendingTeacher = adminButton.dataset.pendingTeacher === "true";
+    const action = pendingTeacher
+      ? "approve this teacher and grant full administrator access to"
+      : administrator ? "grant administrator access to" : "remove administrator access from";
     if (!window.confirm(`Are you sure you want to ${action} this account?`)) return;
     adminButton.disabled = true;
     setAdminNotice(administrator ? "Granting administrator access…" : "Removing administrator access…");
@@ -892,7 +901,7 @@ async function handleAdminUserAction(event) {
       return;
     }
     await refreshAdminUsers();
-    setAdminNotice(administrator ? "Administrator access granted." : "Administrator access removed.", "success");
+    setAdminNotice(administrator ? (pendingTeacher ? "Teacher approved; administrator access granted." : "Administrator access granted.") : "Administrator access removed.", "success");
     return;
   }
   await changeStudentAccess(event);
@@ -1346,18 +1355,24 @@ async function signUp(event) {
   const displayName = String(form.get("displayName")).trim();
   const email = String(form.get("email")).trim().toLowerCase();
   const password = String(form.get("password"));
+  const requestedAccountType = String(form.get("accountType")) === "teacher" ? "teacher" : "student";
   setAccountNotice("Creating your account…");
   const { data, error } = await backendClient.auth.signUp({
     email,
     password,
-    options: { data: { display_name: displayName } }
+    options: { data: { display_name: displayName, requested_account_type: requestedAccountType } }
   });
   if (error) {
     setAccountNotice(error.message, "error");
     return;
   }
   if (!data.session) {
-    setAccountNotice("Account created. Check your email to confirm it, then sign in.", "success");
+    setAccountNotice(
+      requestedAccountType === "teacher"
+        ? "Teacher request submitted. Confirm your email, then the site owner can approve administrator access."
+        : "Account created. Check your email to confirm it, then sign in.",
+      "success"
+    );
     return;
   }
   currentSession = data.session;
