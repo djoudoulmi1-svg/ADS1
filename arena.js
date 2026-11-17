@@ -496,33 +496,18 @@
   async function bindChapterPractice(root, chapterId) {
     const panel = root.querySelector("#chapter-practice-panel");
     if (!panel) return;
+    const chapter = chapterList().find(item => String(item.id) === String(chapterId));
+    if (!chapter) return;
     const state = chapterPracticeState;
     state.chapterId = String(chapterId);
-    state.questions = [];
+    state.questions = builtInChapterQuestions(chapter);
     state.answers = [];
     state.results = null;
     state.error = "";
-    state.loading = true;
+    const api = window.ADS1ChapterQuizAPI;
+    state.loading = state.questions.length === 0 && Boolean(api);
     renderChapterPractice(panel);
 
-    state.questions = builtInChapterQuestions(chapter);
-    const api = window.ADS1ChapterQuizAPI;
-    if (api) {
-      try {
-        const result = await api.list(state.chapterId);
-        if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
-        if (result?.error) state.error = result.error;
-        if (Array.isArray(result?.quizzes) && result.quizzes.length) {
-          state.questions.push(...result.quizzes.map(quiz => ({
-            id: quiz.id, question: quiz.question, options: quiz.options, serverChecked: true
-          })));
-        }
-      } catch { state.error = "Please sign in and try again."; }
-      if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
-    }
-    if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
-    state.loading = false;
-    renderChapterPractice(panel);
     panel.addEventListener("change", event => {
       const input = event.target.closest('input[type="radio"][name^="chapter-q"]');
       if (input && !state.results) state.answers[Number(input.name.slice("chapter-q".length))] = Number(input.value);
@@ -550,6 +535,22 @@
       state.results = results;
       renderChapterPractice(panel);
     });
+
+    if (api) {
+      try {
+        const result = await api.list(state.chapterId);
+        if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
+        if (result?.error) state.error = result.error;
+        if (!state.results && Array.isArray(result?.quizzes) && result.quizzes.length) {
+          state.questions.push(...result.quizzes.map(quiz => ({
+            id: quiz.id, question: quiz.question, options: quiz.options, serverChecked: true
+          })));
+        }
+      } catch { state.error = "Please sign in and try again."; }
+      if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
+    }
+    state.loading = false;
+    renderChapterPractice(panel);
   }
 
   function overviewPage() {
