@@ -1,19 +1,19 @@
 /* Cache the public learning hub shell and supplied lessons for offline reading. */
-const CACHE_NAME = "ads1-offline-v21";
+const CACHE_NAME = "ads1-offline-v22";
 const BASE = new URL("./", self.location.href);
 const SHELL_URLS = [
   "./",
   "./index.html",
-  "./styles.css?v=student-plan-1",
+  "./styles.css?v=teacher-signup-appearance-1",
   "./supabase-config.js?v=student-accounts-setup",
   "./arena-core.js?v=chapter-practice-3",
-  "./arena.js?v=chapter-practice-3",
+  "./arena.js?v=chapter-challenges-2",
   "./algorithm-bug-lab.js?v=2",
-  "./app.js?v=student-plan-1",
+  "./app.js?v=firebase-auth-compat-2",
   "./lesson-resume.js",
   "./smart-review.js?v=smart-review-3",
   "./glossary.js?v=admin-content-2",
-  "./focus-timer.js?v=3",
+  "./focus-timer.js?v=uploaded-chapters-1",
   "./study-plan.js?v=student-plan-1",
   "./offline.js?v=1",
   "./chapters.json",
