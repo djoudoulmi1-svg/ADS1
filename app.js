@@ -1365,7 +1365,10 @@ async function signUp(event) {
   const { data, error } = await backendClient.auth.signUp({
     email,
     password,
-    options: { data: { display_name: displayName, requested_account_type: requestedAccountType } }
+    options: {
+      data: { display_name: displayName, requested_account_type: requestedAccountType },
+      emailRedirectTo: `${window.location.origin}${window.location.pathname}`
+    }
   });
   if (error) {
     setAccountNotice(error.message, "error");
