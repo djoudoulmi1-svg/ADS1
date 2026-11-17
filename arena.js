@@ -218,6 +218,225 @@
   }
 
   const chapterPracticeState = { chapterId: "", questions: [], answers: [], results: null, loading: false, error: "" };
+  const CHAPTER_PRACTICE_BANK = {
+  "03": [
+    {
+      "q": "In a simple if statement, what happens when its condition is false?",
+      "a": "Its body is skipped",
+      "w": [
+        "Its body runs once",
+        "The program always stops",
+        "The condition becomes true"
+      ],
+      "why": "A simple if executes its body only when its condition is true."
+    },
+    {
+      "q": "What does an if / else structure guarantee?",
+      "a": "Exactly one of the two branches runs",
+      "w": [
+        "Both branches always run",
+        "Neither branch can run",
+        "The else branch runs first"
+      ],
+      "why": "If the condition is true, the if branch runs; otherwise the else branch runs."
+    },
+    {
+      "q": "When is x >= 10 true?",
+      "a": "When x is 10 or greater",
+      "w": [
+        "Only when x is greater than 10",
+        "Only when x equals 10",
+        "When x is less than 10"
+      ],
+      "why": "The >= operator includes equality as well as greater values."
+    },
+    {
+      "q": "What does the logical operator AND (&&) require?",
+      "a": "Both conditions to be true",
+      "w": [
+        "At least one condition to be true",
+        "Both conditions to be false",
+        "The first condition only"
+      ],
+      "why": "A conjunction is true only when every joined condition is true."
+    },
+    {
+      "q": "Which condition checks whether n is even?",
+      "a": "n % 2 == 0",
+      "w": [
+        "n / 2 == 0",
+        "n % 2 == 1",
+        "n * 2 == 0"
+      ],
+      "why": "An even integer leaves remainder zero when divided by two."
+    },
+    {
+      "q": "In an if / else if / else chain, what happens after the first true condition?",
+      "a": "That branch runs and the rest of the chain is skipped",
+      "w": [
+        "Every later branch runs too",
+        "The else branch must run first",
+        "The program repeats the first branch"
+      ],
+      "why": "The chain chooses the first true branch, so later alternatives are not checked."
+    },
+    {
+      "q": "When does a nested if statement get checked?",
+      "a": "Only when execution reaches it inside its outer branch",
+      "w": [
+        "Before the outer condition",
+        "Only after the program ends",
+        "Whenever either condition is false"
+      ],
+      "why": "A nested condition is inside the outer branch, so it is reached only if that branch runs."
+    },
+    {
+      "q": "To find the maximum of a, b and c, what is a safe first step?",
+      "a": "Set max to a, then compare b and c with max",
+      "w": [
+        "Set max to zero for all possible inputs",
+        "Set max to a + b + c",
+        "Compare only b and c"
+      ],
+      "why": "Starting from an actual input value also works when all numbers are negative."
+    },
+    {
+      "q": "In a C switch statement, what does break usually do?",
+      "a": "It exits the switch after the matching case",
+      "w": [
+        "It repeats the same case",
+        "It tests the next condition",
+        "It ends the whole program"
+      ],
+      "why": "break prevents execution from falling through into the following case."
+    },
+    {
+      "q": "For positive side lengths, when is a triangle valid?",
+      "a": "Each pair of sides has a sum greater than the third side",
+      "w": [
+        "All three sides must be equal",
+        "One side must equal the sum of the other two",
+        "The largest side must exceed the sum of the other two"
+      ],
+      "why": "The triangle inequality must hold for all three pairs."
+    }
+  ],
+  "04": [
+    {
+      "q": "When is a while-loop condition checked?",
+      "a": "Before each iteration",
+      "w": [
+        "Only after the loop ends",
+        "Only once, after the first iteration",
+        "After the body, exactly once"
+      ],
+      "why": "A while loop is a pre-test loop; a false condition can result in zero iterations."
+    },
+    {
+      "q": "What is guaranteed by a repeat…until loop?",
+      "a": "Its body runs at least once",
+      "w": [
+        "Its body never runs when the condition is false",
+        "It always runs exactly twice",
+        "Its condition is checked before the body"
+      ],
+      "why": "The condition is checked after the body, so the first iteration always happens."
+    },
+    {
+      "q": "Which loop is usually best when the number of repetitions is known?",
+      "a": "A for loop",
+      "w": [
+        "An if statement",
+        "A switch statement",
+        "A while loop with no condition"
+      ],
+      "why": "A for loop groups its counter initialization, condition and update in one place."
+    },
+    {
+      "q": "If a pseudocode for loop runs i from 1 to 5 inclusive, how many times does it run?",
+      "a": "5 times",
+      "w": [
+        "4 times",
+        "6 times",
+        "Once"
+      ],
+      "why": "The inclusive values are 1, 2, 3, 4 and 5."
+    },
+    {
+      "q": "What is the correct starting value for a factorial accumulator?",
+      "a": "1",
+      "w": [
+        "0",
+        "The input n",
+        "-1"
+      ],
+      "why": "Multiplication by one preserves the product; starting at zero would keep every result zero."
+    },
+    {
+      "q": "What is the sum of the integers from 1 through 4?",
+      "a": "10",
+      "w": [
+        "8",
+        "9",
+        "11"
+      ],
+      "why": "The loop adds 1 + 2 + 3 + 4, which equals 10."
+    },
+    {
+      "q": "What is a common cause of an infinite counting loop?",
+      "a": "The loop counter is never updated",
+      "w": [
+        "The counter starts at 1",
+        "The condition is checked each time",
+        "The body contains an output instruction"
+      ],
+      "why": "If the counter never moves toward the stopping condition, the loop may never end."
+    },
+    {
+      "q": "How can repeat…until condition be represented by C do…while?",
+      "a": "Continue while the until condition is false",
+      "w": [
+        "Continue while the until condition is true",
+        "Check the condition before do runs",
+        "Remove the condition entirely"
+      ],
+      "why": "Repeat…until stops when its condition becomes true; do…while continues while its condition is true."
+    },
+    {
+      "q": "In a counting loop, what should the update do?",
+      "a": "Move the counter toward the stopping condition",
+      "w": [
+        "Reset the counter to its starting value",
+        "Change the loop condition to true forever",
+        "Skip the loop body"
+      ],
+      "why": "A suitable update ensures progress toward termination."
+    },
+    {
+      "q": "Which order describes a typical C for loop?",
+      "a": "Initialize, test condition, run body, update",
+      "w": [
+        "Run body, update, initialize, test",
+        "Test condition, initialize, update, run body",
+        "Initialize, update, run body, test"
+      ],
+      "why": "C initializes once, checks the condition, runs the body, then updates before checking again."
+    }
+  ]
+};
+
+  function builtInChapterQuestions(chapter) {
+    const number = String(chapter.number || chapter.id).replace(/\\D/g, "").padStart(2, "0");
+    const bank = number === "01" || number === "02" ? (A.EXAM_BANK[Number(number)] || []) : (CHAPTER_PRACTICE_BANK[number] || []);
+    return bank.slice(0, 10).map((item, index) => {
+      const options = item.w.slice(0, 3);
+      const correctIndex = index % (options.length + 1);
+      options.splice(correctIndex, 0, item.a);
+      return { question: item.q, options, correctIndex, explanation: item.why };
+    });
+  }
+
+
 
   function chapterList() {
     const chapters = window.ADS1ChapterCatalog;
@@ -286,6 +505,7 @@
     state.loading = true;
     renderChapterPractice(panel);
 
+    state.questions = builtInChapterQuestions(chapter);
     const api = window.ADS1ChapterQuizAPI;
     if (api) {
       try {
@@ -293,21 +513,12 @@
         if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
         if (result?.error) state.error = result.error;
         if (Array.isArray(result?.quizzes) && result.quizzes.length) {
-          state.questions = result.quizzes.map(quiz => ({
+          state.questions.push(...result.quizzes.map(quiz => ({
             id: quiz.id, question: quiz.question, options: quiz.options, serverChecked: true
-          }));
+          })));
         }
       } catch { state.error = "Please sign in and try again."; }
       if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
-    }
-    if (!state.questions.length && (state.chapterId === "1" || state.chapterId === "2")) {
-      const bank = A.EXAM_BANK[state.chapterId === "1" ? 1 : 2] || [];
-      state.questions = bank.slice(0, 8).map((item, index) => {
-        const options = item.w.slice();
-        const correctIndex = index % (options.length + 1);
-        options.splice(correctIndex, 0, item.a);
-        return { question: item.q, options, correctIndex, explanation: item.why };
-      });
     }
     if (!panel.isConnected || state.chapterId !== String(chapterId)) return;
     state.loading = false;
