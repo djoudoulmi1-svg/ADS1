@@ -614,8 +614,10 @@ function accountPage() {
       <form id="signup-form" class="auth-form"><h2>Create account</h2>
         <label for="signup-name">Display name</label><input id="signup-name" name="displayName" autocomplete="nickname" minlength="2" maxlength="40" required>
         <fieldset class="account-type-fieldset"><legend>Account type</legend>
-          <label><input type="radio" name="accountType" value="student" checked> Student — regular account</label>
-          <label><input type="radio" name="accountType" value="teacher"> Teacher — requires owner approval</label>
+          <div class="account-type-options">
+            <label class="account-type-option"><input type="radio" name="accountType" value="student" checked><span>Student<small>Regular account</small></span></label>
+            <label class="account-type-option"><input type="radio" name="accountType" value="teacher"><span>Teacher<small>Requires owner approval</small></span></label>
+          </div>
         </fieldset>
         <label for="signup-email">Email</label><input id="signup-email" name="email" type="email" autocomplete="email" required>
         <label for="signup-password">Password</label><input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
