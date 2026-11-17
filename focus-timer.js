@@ -9,6 +9,19 @@
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
+  const fallbackChapters = [
+    { id: "1", number: "01", title: "Introduction to Programming" },
+    { id: "2", number: "02", title: "Sequential Algorithm" }
+  ];
+  const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[char]);
+  function availableChapters() {
+    const catalog = window.ADS1ChapterCatalog;
+    if (!Array.isArray(catalog)) return fallbackChapters;
+    return catalog.filter(chapter => chapter && chapter.id != null && chapter.available !== false)
+      .map(chapter => ({ id: String(chapter.id), number: String(chapter.number || ""), title: String(chapter.title || "Untitled chapter") }));
+  }
   function readCount() {
     try {
       const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -20,6 +33,15 @@
   }
   function page() {
     const count = readCount();
+    const chapters = availableChapters();
+    if (chapters.some(chapter => chapter.id === String(state.chapter))) {
+      state.chapter = String(state.chapter);
+    } else {
+      state.chapter = String(chapters[0]?.id || "");
+    }
+    const chapterOptions = chapters.map(chapter =>
+      `<option value="${escapeHTML(chapter.id)}" ${state.chapter === chapter.id ? "selected" : ""}>Chapter ${escapeHTML(chapter.number)} · ${escapeHTML(chapter.title)}</option>`
+    ).join("") || '<option value="">No visible chapters available</option>';
     return `<section class="container page-shell focus-page">
       <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="#home">Home</a><span aria-hidden="true">/</span><strong>Focus</strong></nav>
       <span class="eyebrow">Study tools</span><h1>Study Focus</h1>
@@ -27,7 +49,7 @@
       <section class="focus-panel" aria-labelledby="focus-heading">
         <div class="focus-setup">
           <label for="focus-chapter">Choose a chapter
-            <select id="focus-chapter"><option value="1" ${state.chapter === "1" ? "selected" : ""}>Chapter 01 · Introduction to Programming</option><option value="2" ${state.chapter === "2" ? "selected" : ""}>Chapter 02 · Sequential Algorithm</option></select>
+            <select id="focus-chapter" ${chapters.length ? "" : "disabled"}>${chapterOptions}</select>
           </label>
           <fieldset class="focus-presets"><legend>Focus session length</legend>
             ${[15, 25, 45].map(minutes => `<button type="button" class="button secondary${state.minutes === minutes ? " active" : ""}" data-focus-minutes="${minutes}" aria-pressed="${state.minutes === minutes}">${minutes} min</button>`).join("")}
@@ -39,7 +61,7 @@
           <p id="focus-message" class="focus-message" role="status">${state.running ? "Stay with your study session." : "When you are ready, start your focus session."}</p>
           <div class="focus-actions"><button type="button" class="button" id="focus-start">${state.running ? "Pause" : "Start focus"}</button><button type="button" class="button secondary" id="focus-reset">Reset</button></div>
         </div>
-        <div class="focus-footer"><p><strong id="focus-count">${count}</strong> focus session${count === 1 ? "" : "s"} completed today on this browser.</p><a class="button secondary" id="focus-open-chapter" href="#lesson/${state.chapter}">Open selected chapter <span aria-hidden="true">→</span></a></div>
+        <div class="focus-footer"><p><strong id="focus-count">${count}</strong> focus session${count === 1 ? "" : "s"} completed today on this browser.</p><a class="button secondary" id="focus-open-chapter" href="${state.chapter ? `#lesson/${encodeURIComponent(state.chapter)}` : "#chapters"}">${state.chapter ? "Open selected chapter" : "Browse chapters"} <span aria-hidden="true">→</span></a></div>
       </section>
     </section>`;
   }
@@ -52,7 +74,9 @@
     const start = root.querySelector("#focus-start");
     start.textContent = state.running ? "Pause" : state.mode === "focus" ? "Start focus" : "Start break";
     root.querySelector("#focus-mode").textContent = state.mode === "focus" ? "Focus session" : "Short break";
-    root.querySelector("#focus-open-chapter").href = `#lesson/${state.chapter}`;
+    const openChapter = root.querySelector("#focus-open-chapter");
+    openChapter.href = state.chapter ? `#lesson/${encodeURIComponent(state.chapter)}` : "#chapters";
+    openChapter.firstChild.textContent = state.chapter ? "Open selected chapter " : "Browse chapters ";
   }
   function pause() {
     state.running = false;
