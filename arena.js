@@ -426,7 +426,7 @@
 };
 
   function builtInChapterQuestions(chapter) {
-    const number = String(chapter.number || chapter.id).replace(/\\D/g, "").padStart(2, "0");
+    const number = String(chapter.number || chapter.id).replace(/\D/g, "").padStart(2, "0");
     const bank = number === "01" || number === "02" ? (A.EXAM_BANK[Number(number)] || []) : (CHAPTER_PRACTICE_BANK[number] || []);
     return bank.slice(0, 10).map((item, index) => {
       const options = item.w.slice(0, 3);
