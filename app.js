@@ -1591,6 +1591,13 @@ async function initializeAccounts() {
     await loadChapterCatalog();
   }
   backendClient.auth.onAuthStateChange((event, session) => {
+    const previousUserId = currentSession?.user?.id || null;
+    const nextUserId = session?.user?.id || null;
+    if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED" ||
+        (event === "SIGNED_IN" && previousUserId && previousUserId === nextUserId)) {
+      currentSession = session;
+      return;
+    }
     if (event === "PASSWORD_RECOVERY") {
       passwordRecoveryMode = true;
       accountNotice = "";
